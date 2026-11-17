@@ -30,6 +30,8 @@
                     <MenuItem Header="Buat File Data Baru…" Click="FileBaru_Click"/>
                     <MenuItem Header="Simpan Salinan Sebagai… (mis. ke flashdisk)" Click="SimpanSalinan_Click"/>
                     <Separator/>
+                    <MenuItem Header="Impor APBDes dari Excel Siskeudes…" Click="Impor_Click"/>
+                    <Separator/>
                     <MenuItem Header="Buka Folder File Data" Click="FolderData_Click"/>
                     <MenuItem Header="Buka Folder Cadangan Otomatis" Click="FolderCadangan_Click"/>
                     <Separator/>
@@ -51,6 +53,7 @@
                     <Separator/>
                     <MenuItem Header="Penganggaran">
                         <MenuItem Header="Isian Data Anggaran" Click="Isian_Click" InputGestureText="F3"/>
+                        <MenuItem Header="Impor dari Excel Siskeudes…" Click="Impor_Click"/>
                         <MenuItem x:Name="MenuPosting" Header="Posting APBDes (kunci skenario)…" Click="Posting_Click"/>
                     </MenuItem>
                 </MenuItem>

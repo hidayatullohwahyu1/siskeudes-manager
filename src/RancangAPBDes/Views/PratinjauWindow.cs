@@ -32,8 +32,19 @@ public class PratinjauWindow : Window
         bar.Children.Add(new TextBlock { Text = "Laporan", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 6) });
         _jenis = new ComboBox { MinWidth = 320, Margin = new Thickness(0, 0, 10, 6), ItemsSource = Laporan.Jenis, SelectedIndex = 0 };
         if (jenisAwal != null && Laporan.Jenis.Contains(jenisAwal)) _jenis.SelectedItem = jenisAwal;
-        _jenis.SelectionChanged += (_, _) => Muat();
+        _jenis.SelectionChanged += (_, _) => { AturSemula(); Muat(); };
         bar.Children.Add(_jenis);
+        _labelSemula.Margin = new Thickness(0, 0, 6, 6);
+        _semula.Margin = new Thickness(0, 0, 10, 6);
+        _semula.DisplayMemberPath = "TampilLengkap";
+        _semula.ItemsSource = S.SemuaSkenario.Where(s => !ReferenceEquals(s, S.SkenarioAktif)).ToList();
+        _semula.SelectedItem = S.SemuaSkenario.Where(s => !ReferenceEquals(s, S.SkenarioAktif))
+            .OrderByDescending(s => s.Nama.Contains("Semula", StringComparison.OrdinalIgnoreCase))
+            .ThenBy(s => Math.Abs(s.Tahun - (S.SkenarioAktif?.Tahun ?? 0))).FirstOrDefault();
+        _semula.SelectionChanged += (_, _) => Muat();
+        bar.Children.Add(_labelSemula);
+        bar.Children.Add(_semula);
+        AturSemula();
         var cetak = new Button { Content = "Cetak…", Style = (Style)Application.Current.FindResource("TombolUtama"), MinWidth = 110 };
         cetak.Click += (_, _) => Cetak();
         bar.Children.Add(cetak);
@@ -62,9 +73,25 @@ public class PratinjauWindow : Window
         Loaded += (_, _) => Muat();
     }
 
+    readonly TextBlock _labelSemula = new() { Text = "Semula:", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
+    readonly ComboBox _semula = new() { MinWidth = 240 };
+
+    void AturSemula()
+    {
+        var v = _jenis.SelectedItem as string == Laporan.Perubahan ? Visibility.Visible : Visibility.Collapsed;
+        _labelSemula.Visibility = _semula.Visibility = v;
+    }
+
     FlowDocument? BuatDokumen()
     {
         if (S.Data == null || S.SkenarioAktif == null || S.Hasil == null) return null;
+        if (_jenis.SelectedItem as string == Laporan.Perubahan)
+        {
+            if (_semula.SelectedItem is not SkenarioInfo semula) return Laporan.Buat(Laporan.Perubahan, S.Desa, S.SkenarioAktif, S.Data, S.Hasil);
+            var dSemula = S.MuatDataSkenarioLain(semula);
+            if (dSemula == null) return null;
+            return Laporan.BuatPerubahan(S.Desa, semula, dSemula, S.SkenarioAktif, S.Data);
+        }
         return Laporan.Buat(_jenis.SelectedItem as string ?? Laporan.Ringkasan, S.Desa, S.SkenarioAktif, S.Data, S.Hasil);
     }
 

@@ -15,6 +15,36 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        var iImpor = Array.IndexOf(e.Args, "--uji-impor");
+        if (iImpor >= 0 && iImpor + 2 < e.Args.Length)
+        {
+            AturBudaya();
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            base.OnStartup(e);
+            Lookup.Bangun(DefaultReferensi.Buat());
+            var sb = new System.Text.StringBuilder();
+            try
+            {
+                var h = ImporSiskeudes.Baca(e.Args.Skip(iImpor + 2));
+                sb.AppendLine($"Lembar dibaca: {h.LembarDibaca}");
+                foreach (var (v, d) in h.Versi)
+                {
+                    var hit = Kalkulasi.Hitung(d, DefaultReferensi.Buat());
+                    sb.AppendLine($"[{v}] kegiatan {d.Kegiatan.Count}, paket {d.Kegiatan.Sum(k => k.Paket.Count)}, rinci belanja {d.Kegiatan.Sum(k => k.Paket.Sum(p => p.Rincian.Count))}, " +
+                                  $"rinci pendapatan {d.Pendapatan.Count}, penerimaan {d.PenerimaanPembiayaan.Count}, pengeluaran {d.PengeluaranPembiayaan.Count}");
+                    sb.AppendLine($"[{v}] pendapatan {hit.TotalPendapatan:N0}, belanja {hit.TotalBelanja:N0}, penerimaan {hit.PenerimaanPembiayaan:N0}, pengeluaran {hit.PengeluaranPembiayaan:N0}");
+                }
+                sb.AppendLine($"Pelaksana dikenali: {h.Pelaksana.Count}; rekening baru: {h.RekeningBaru.Count}; kegiatan baru: {h.KegiatanBaru.Count}");
+                sb.AppendLine($"Selisih: {h.Selisih.Count}");
+                foreach (var s in h.Selisih) sb.AppendLine("  " + s);
+                foreach (var c in h.Catatan) sb.AppendLine("  catatan: " + c);
+            }
+            catch (Exception ex) { sb.AppendLine("GALAT: " + ex); }
+            File.WriteAllText(e.Args[iImpor + 1], sb.ToString());
+            Shutdown(0);
+            return;
+        }
+
         var iUji = Array.IndexOf(e.Args, "--uji");
         if (iUji >= 0)
         {

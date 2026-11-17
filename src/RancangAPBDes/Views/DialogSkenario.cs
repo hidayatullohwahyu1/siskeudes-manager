@@ -53,6 +53,7 @@ public class DialogSkenario : Window
             DialogResult = true;
         };
         var batal = new Button { Content = "Batal", IsCancel = true, MinWidth = 100 };
+        batal.Click += (_, _) => { if (IsLoaded) Close(); };
         tombol.Children.Add(ok);
         tombol.Children.Add(batal);
         sp.Children.Add(tombol);

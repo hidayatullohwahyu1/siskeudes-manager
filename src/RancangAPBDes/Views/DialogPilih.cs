@@ -39,6 +39,7 @@ public class DialogPilih : Window
         var ok = new Button { Content = "Pilih", IsDefault = true, Style = (Style)Application.Current.FindResource("TombolUtama"), MinWidth = 90 };
         ok.Click += (_, _) => Selesai();
         var batal = new Button { Content = "Batal", IsCancel = true, MinWidth = 90 };
+        batal.Click += (_, _) => { if (IsLoaded) Close(); };
         bawah.Children.Add(ok);
         bawah.Children.Add(batal);
         DockPanel.SetDock(bawah, Dock.Bottom);

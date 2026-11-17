@@ -576,6 +576,28 @@ public sealed class AppState : Bindable
         PilihTahunDanSkenario(tahun, info.Id);
     }
 
+    /// <summary>Buat skenario dari data yang sudah disiapkan (mis. hasil impor). Mengembalikan skenario baru.</summary>
+    public SkenarioInfo? BuatSkenarioDari(string nama, int tahun, DataSkenario data, bool pilih)
+    {
+        if (_db == null) return null;
+        SimpanSegera();
+        var info = new SkenarioInfo { Tahun = tahun, Nama = nama.Trim() };
+        try
+        {
+            _db.TambahSkenario(info, Serialize(data));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Buat skenario impor");
+            Pesan.Galat("Skenario gagal dibuat.", ex);
+            return null;
+        }
+        SemuaSkenario.Add(info);
+        IsiDaftarTahun();
+        if (pilih) PilihTahunDanSkenario(tahun, info.Id);
+        return info;
+    }
+
     public void GantiNama(SkenarioInfo info, string nama)
     {
         if (_db == null) return;

@@ -419,6 +419,7 @@ public static class Lookup
     static Dictionary<string, string> _sd = new(StringComparer.OrdinalIgnoreCase);
     static Dictionary<string, string> _sub = new(StringComparer.OrdinalIgnoreCase);
     static Dictionary<string, string> _bid = new(StringComparer.OrdinalIgnoreCase);
+    static Dictionary<string, string> _keg = new(StringComparer.OrdinalIgnoreCase);
 
     public static void Bangun(Referensi r)
     {
@@ -426,6 +427,7 @@ public static class Lookup
         _sd = Kamus(r.SumberDana.Select(x => (x.Kode, x.Nama)));
         _sub = Kamus(r.SubBidang.Select(x => (x.Kode, x.Nama)));
         _bid = Kamus(r.Bidang.Select(x => (x.Kode, x.Nama)));
+        _keg = Kamus(r.Kegiatan.Select(x => (x.Kode, x.Nama)));
     }
 
     static Dictionary<string, string> Kamus(IEnumerable<(string k, string n)> items)
@@ -437,6 +439,7 @@ public static class Lookup
     }
 
     public static bool AdaRekening(string k) => _rek.ContainsKey(Batas.Kode(k));
+    public static bool AdaKegiatan(string k) => _keg.ContainsKey(Batas.KodeKeg(k));
     public static bool AdaSumberDana(string k) => _sd.ContainsKey((k ?? "").Trim());
 
     public static string NamaRekening(string k)

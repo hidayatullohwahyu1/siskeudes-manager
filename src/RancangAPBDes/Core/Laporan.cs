@@ -12,7 +12,8 @@ public static class Laporan
     public const string SiapInput = "Daftar Siap Input Siskeudes";
     public const string Pendapatan = "Rencana Anggaran Pendapatan";
     public const string Pembiayaan = "Rencana Anggaran Pembiayaan";
-    public static readonly string[] Jenis = { Ringkasan, Pendapatan, Rab, Pembiayaan, SiapInput };
+    public const string Perubahan = "Perubahan APBDes (Semula – Menjadi)";
+    public static readonly string[] Jenis = { Ringkasan, Pendapatan, Rab, Pembiayaan, Perubahan, SiapInput };
 
     static readonly Brush Garis = new SolidColorBrush(Color.FromRgb(0x88, 0x92, 0xA0));
     static readonly Brush LatarKepala = new SolidColorBrush(Color.FromRgb(0xE3, 0xE9, 0xF1));
@@ -47,6 +48,7 @@ public static class Laporan
             case SiapInput: IsiSiapInput(doc, desa, data); break;
             case Pendapatan: IsiRekening(doc, "PENDAPATAN", data.Pendapatan, null, null); TandaTangan(doc, desa); break;
             case Pembiayaan: IsiRekening(doc, "PENERIMAAN PEMBIAYAAN", data.PenerimaanPembiayaan, "PENGELUARAN PEMBIAYAAN", data.PengeluaranPembiayaan); TandaTangan(doc, desa); break;
+            case Perubahan: doc.Blocks.Add(Teks("Pilih skenario Semula di bagian atas jendela pratinjau.")); break;
             default: IsiRingkasan(doc, desa, data, hasil); break;
         }
         return doc;
@@ -254,6 +256,62 @@ public static class Laporan
         p.Inlines.Add(new LineBreak());
         p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(nama) ? "( ................................ )" : nama) { FontWeight = FontWeights.SemiBold, TextDecorations = TextDecorations.Underline });
         return new TableCell(p);
+    }
+
+    // ------------------------------------------------------------ Perubahan (Semula – Menjadi)
+
+    /// <summary>Rekapitulasi perubahan seperti cetakan Siskeudes: per kegiatan, pendapatan, dan pembiayaan.</summary>
+    public static FlowDocument BuatPerubahan(DataDesa desa, SkenarioInfo semula, DataSkenario dSemula, SkenarioInfo menjadi, DataSkenario dMenjadi)
+    {
+        var doc = Buat(Ringkasan, desa, menjadi, new DataSkenario(), Kalkulasi.Hitung(new DataSkenario(), AppState.Instance.Referensi));
+        doc.Blocks.Clear();
+        Kop(doc, Perubahan, desa, menjadi);
+        doc.Blocks.Add(Teks($"Semula: skenario \"{semula.Nama}\" (tahun {semula.Tahun}).  Menjadi: skenario \"{menjadi.Nama}\" (tahun {menjadi.Tahun}).", 12));
+        string S0(decimal v) => v < 0 ? $"({N0(-v)})" : N0(v);
+
+        doc.Blocks.Add(Judul("A. Rekapitulasi Perubahan RAB per Kegiatan"));
+        var t = new Tabel(new double[] { 0.6, 1.2, 4.2, 1.1, 1.9, 1.9, 1.9 },
+            new[] { "No", "Kode", "Bidang / Sub Bidang / Nama Kegiatan", "Waktu", "Semula (Rp)", "Menjadi (Rp)", "Bertambah / (Berkurang)" },
+            new[] { false, false, false, false, true, true, true });
+        var ka = dSemula.Kegiatan.GroupBy(k => k.Kode).ToDictionary(g => g.Key, g => g.Sum(k => k.Total));
+        var kb = dMenjadi.Kegiatan.GroupBy(k => k.Kode).ToDictionary(g => g.Key, g => g.Sum(k => k.Total));
+        var semua = dSemula.Kegiatan.Concat(dMenjadi.Kegiatan).GroupBy(k => k.Kode).Select(g => g.Last()).OrderBy(k => k.Kode, KodeComparer.Instance).ToList();
+        int no = 1;
+        foreach (var bid in semua.GroupBy(k => k.KodeSubBidang.Split('.')[0]))
+        {
+            t.Grup($"{bid.Key}. {Lookup.NamaBidang(bid.Key).ToUpperInvariant()}");
+            foreach (var k in bid)
+            {
+                var a = ka.GetValueOrDefault(k.Kode); var b = kb.GetValueOrDefault(k.Kode);
+                t.Tambah((no++).ToString(), k.Kode + ".", k.Nama, k.Waktu, N0(a), N0(b), S0(b - a));
+            }
+        }
+        var ta = ka.Values.Sum(); var tb = kb.Values.Sum();
+        t.Tebal("", "", "JUMLAH BELANJA", "", N0(ta), N0(tb), S0(tb - ta));
+        doc.Blocks.Add(t.T);
+
+        void PerRekening(string judul, IEnumerable<RincianAnggaran> a, IEnumerable<RincianAnggaran> b)
+        {
+            doc.Blocks.Add(Judul(judul));
+            var ga = a.GroupBy(r => r.KodeRekening).ToDictionary(g => g.Key, g => g.Sum(r => r.Jumlah));
+            var gb = b.GroupBy(r => r.KodeRekening).ToDictionary(g => g.Key, g => g.Sum(r => r.Jumlah));
+            var tt = new Tabel(new double[] { 1.4, 4.6, 1.9, 1.9, 1.9 },
+                new[] { "Kode", "Uraian", "Semula (Rp)", "Menjadi (Rp)", "Bertambah / (Berkurang)" },
+                new[] { false, false, true, true, true });
+            foreach (var k in ga.Keys.Union(gb.Keys).OrderBy(x => x, KodeComparer.Instance))
+            {
+                var x = ga.GetValueOrDefault(k); var y = gb.GetValueOrDefault(k);
+                tt.Tambah(KodeRek(k), Lookup.NamaRekening(k), N0(x), N0(y), S0(y - x));
+            }
+            var sa = ga.Values.Sum(); var sb = gb.Values.Sum();
+            tt.Tebal("", "JUMLAH", N0(sa), N0(sb), S0(sb - sa));
+            doc.Blocks.Add(tt.T);
+        }
+        PerRekening("B. Perubahan Pendapatan", dSemula.Pendapatan, dMenjadi.Pendapatan);
+        PerRekening("C. Perubahan Penerimaan Pembiayaan", dSemula.PenerimaanPembiayaan, dMenjadi.PenerimaanPembiayaan);
+        PerRekening("D. Perubahan Pengeluaran Pembiayaan", dSemula.PengeluaranPembiayaan, dMenjadi.PengeluaranPembiayaan);
+        TandaTangan(doc, desa);
+        return doc;
     }
 
     // ------------------------------------------------------------ RAP / pembiayaan (susunan seperti cetakan Siskeudes)

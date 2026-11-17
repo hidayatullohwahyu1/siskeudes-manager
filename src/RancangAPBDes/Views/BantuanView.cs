@@ -43,7 +43,12 @@ public class BantuanView : UserControl
             "    • Pembiayaan 1 (penerimaan, mis. SiLPA) dan Pembiayaan 2 (pengeluaran, mis. penyertaan modal).",
             "3. Beranda: lihat sisa dana per sumber dana, keseimbangan APBDes, dan peringatan.",
             "4. Data Entri › Penganggaran › Posting APBDes: kunci skenario yang sudah disepakati.",
-            "5. Laporan: cetak/PDF atau ekspor Excel, termasuk Daftar Siap Input Siskeudes.");
+            "5. Laporan: cetak/PDF atau ekspor Excel, termasuk Daftar Siap Input Siskeudes dan Perubahan APBDes (Semula – Menjadi).");
+
+        Bagian("Mulai dari APBDes yang sudah ada",
+            "File › Impor APBDes dari Excel Siskeudes: pilih file RAB per kegiatan, Rencana Anggaran Pendapatan, dan Rencana Anggaran Pembiayaan (boleh sekaligus).",
+            "Jika file berisi kolom SEMULA dan MENJADI, aplikasi membuat dua skenario sehingga bisa langsung dibandingkan.",
+            "Baris yang jumlahnya tidak sama dengan Volume × Harga Satuan ditampilkan untuk dicek, karena Siskeudes selalu memakai rumus tersebut.");
 
         Bagian("Cara mengisi tabel",
             "Pilih baris di tabel, isinya tampil lengkap di bawah tabel.",

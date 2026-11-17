@@ -29,6 +29,7 @@ public class DialogInput : Window
         var ok = new Button { Content = "Simpan", IsDefault = true, MinWidth = 100, Style = (Style)Application.Current.FindResource("TombolUtama") };
         ok.Click += (_, _) => { DialogResult = true; };
         var batal = new Button { Content = "Batal", IsCancel = true, MinWidth = 100, Margin = new Thickness(0, 0, 0, 6) };
+        batal.Click += (_, _) => { if (IsLoaded) Close(); };
         tombol.Children.Add(ok);
         tombol.Children.Add(batal);
         sp.Children.Add(tombol);

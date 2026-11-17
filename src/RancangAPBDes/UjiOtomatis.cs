@@ -86,6 +86,8 @@ public static class UjiOtomatis
                 Cek(doc.Blocks.Count > 2, "Laporan: " + j);
             }
 
+            UjiImpor(folder, S);
+
             // File rusak / bukan data
             var palsu = Path.Combine(folder, "palsu.apbdes");
             File.WriteAllText(palsu, "ini bukan database");
@@ -114,6 +116,91 @@ public static class UjiOtomatis
             File.WriteAllText(Path.Combine(folder, "hasil.txt"), Hasil.ToString());
         }
         return _gagal;
+    }
+
+    /// <summary>Impor dari Excel tiruan berformat Siskeudes (RAB, pendapatan, pembiayaan, rekap PKA).</summary>
+    static void UjiImpor(string folder, AppState S)
+    {
+        var path = Path.Combine(folder, "tiruan_siskeudes.xlsx");
+        using (var wb = new ClosedXML.Excel.XLWorkbook())
+        {
+            var rk = wb.AddWorksheet("Ringkasan");
+            rk.Cell(1, 1).Value = "REKAPITULASI";
+            object[] judulRk = { "NO", "KODE", "BIDANG / SUB BIDANG / NAMA KEGIATAN", "WAKTU", "PKA", "ANGGARAN SEMULA (Rp)", "ANGGARAN MENJADI (Rp)" };
+            for (int i = 0; i < judulRk.Length; i++) rk.Cell(3, i + 1).Value = judulRk[i].ToString();
+            rk.Cell(4, 1).Value = 1; rk.Cell(4, 2).Value = "2.3.10."; rk.Cell(4, 3).Value = "Jalan Desa"; rk.Cell(4, 5).Value = "Pelaksana Uji";
+
+            var rab = wb.AddWorksheet("2.3.10 Jalan");
+            rab.Cell(3, 1).Value = "Kegiatan"; rab.Cell(3, 2).Value = ":"; rab.Cell(3, 3).Value = "2.3.10. Pembangunan Jalan Desa **)";
+            rab.Cell(4, 1).Value = "Waktu Pelaksanaan"; rab.Cell(4, 2).Value = ":"; rab.Cell(4, 3).Value = "6 Bulan";
+            string[] j = { "KODE REKENING", "URAIAN KEGIATAN / AKUN / RINCIAN", "SUMBER DANA", "VOLUME SEMULA", "HARGA SATUAN SEMULA (Rp)", "JUMLAH SEMULA (Rp)", "VOLUME MENJADI", "HARGA SATUAN MENJADI (Rp)", "JUMLAH MENJADI (Rp)", "BERTAMBAH / (BERKURANG) (Rp)" };
+            for (int i = 0; i < j.Length; i++) rab.Cell(6, i + 1).Value = j[i];
+            void Baris(int r, string a, string b, string c, string d, double e, double f, string g, double h, double i)
+            {
+                rab.Cell(r, 1).Value = a; rab.Cell(r, 2).Value = b; rab.Cell(r, 3).Value = c;
+                if (d != "") rab.Cell(r, 4).Value = d;
+                if (e != 0) rab.Cell(r, 5).Value = e;
+                rab.Cell(r, 6).Value = f;
+                if (g != "") rab.Cell(r, 7).Value = g;
+                if (h != 0) rab.Cell(r, 8).Value = h;
+                rab.Cell(r, 9).Value = i;
+            }
+            Baris(7, "5.", "BELANJA", "", "", 0, 982_500, "", 0, 1_332_500);
+            Baris(8, "", "01. Rabat Beton RT 01", "", "", 0, 982_500, "", 0, 1_332_500);
+            Baris(9, "5.3.5.", "Belanja Modal Jalan/Prasarana Jalan", "", "", 0, 982_500, "", 0, 1_332_500);
+            Baris(10, "5.3.5.03.", "Belanja Modal Jalan Bahan Baku/Material", "", "", 0, 982_500, "", 0, 1_332_500);
+            Baris(11, "", "01. Semen 50 kg", "DDS", "10 sak", 80_000, 800_000, "12 sak", 80_000, 960_000);
+            Baris(12, "", "02. Air", "DDS", "3.050 liter", 50, 152_500, "3.050 liter", 50, 152_500);
+            Baris(13, "", "03. Paku", "DDS", "0.5 kg", 20_000, 10_000, "1 kg", 20_000, 20_000);
+            Baris(14, "", "04. Plastik (salah ketik)", "DDS", "4 rol", 50_000, 20_000, "4 rol", 50_000, 200_000);
+            rab.Cell(15, 1).Value = "JUMLAH TOTAL (Rp)";
+
+            var pd = wb.AddWorksheet("Pendapatan");
+            pd.Cell(4, 1).Value = "KODE"; pd.Cell(4, 2).Value = "URAIAN"; pd.Cell(4, 3).Value = "SUMBER DANA"; pd.Cell(4, 4).Value = "SEMULA"; pd.Cell(4, 7).Value = "MENJADI"; pd.Cell(4, 10).Value = "BERTAMBAH / (BERKURANG) (Rp)";
+            pd.Cell(5, 4).Value = "VOLUME"; pd.Cell(5, 5).Value = "HARGA SATUAN (Rp)"; pd.Cell(5, 6).Value = "JUMLAH (Rp)"; pd.Cell(5, 7).Value = "VOLUME"; pd.Cell(5, 8).Value = "HARGA SATUAN (Rp)"; pd.Cell(5, 9).Value = "JUMLAH (Rp)";
+            pd.Cell(6, 1).Value = "4."; pd.Cell(6, 2).Value = "PENDAPATAN"; pd.Cell(6, 6).Value = 1_000_000; pd.Cell(6, 9).Value = 900_000;
+            pd.Cell(7, 1).Value = "4.2.1.01."; pd.Cell(7, 2).Value = "Dana Desa";
+            pd.Cell(8, 2).Value = "01. Dana Desa"; pd.Cell(8, 3).Value = "DDS"; pd.Cell(8, 4).Value = "1 tahun"; pd.Cell(8, 5).Value = 1_000_000; pd.Cell(8, 6).Value = 1_000_000;
+            pd.Cell(8, 7).Value = "1 tahun"; pd.Cell(8, 8).Value = 900_000; pd.Cell(8, 9).Value = 900_000;
+
+            var pb = wb.AddWorksheet("Pembiayaan");
+            pb.Cell(4, 1).Value = "KODE"; pb.Cell(4, 2).Value = "URAIAN"; pb.Cell(4, 3).Value = "SUMBER DANA"; pb.Cell(4, 4).Value = "SEMULA"; pb.Cell(4, 8).Value = "MENJADI"; pb.Cell(4, 12).Value = "BERTAMBAH / (BERKURANG) (Rp)";
+            string[] sub = { "VOL", "SAT", "HARGA SATUAN (Rp)", "JUMLAH (Rp)" };
+            for (int i = 0; i < 4; i++) { pb.Cell(5, 4 + i).Value = sub[i]; pb.Cell(5, 8 + i).Value = sub[i]; }
+            for (int i = 1; i <= 12; i++) pb.Cell(6, i).Value = i;
+            pb.Cell(7, 1).Value = "6."; pb.Cell(7, 2).Value = "PEMBIAYAAN";
+            pb.Cell(8, 1).Value = "6.1."; pb.Cell(8, 2).Value = "Penerimaan Pembiayaan"; pb.Cell(8, 7).Value = 250_000; pb.Cell(8, 11).Value = 250_000;
+            pb.Cell(9, 1).Value = "6.1.1.01."; pb.Cell(9, 2).Value = "SILPA Tahun Sebelumnya";
+            pb.Cell(10, 1).Value = "01."; pb.Cell(10, 2).Value = "SILPA Dana Desa"; pb.Cell(10, 3).Value = "DDS";
+            pb.Cell(10, 4).Value = 1; pb.Cell(10, 5).Value = "Ls"; pb.Cell(10, 6).Value = 250_000; pb.Cell(10, 7).Value = 250_000;
+            pb.Cell(10, 8).Value = 1; pb.Cell(10, 9).Value = "Ls"; pb.Cell(10, 10).Value = 250_000; pb.Cell(10, 11).Value = 250_000;
+            pb.Cell(11, 2).Value = "PEMBIAYAAN NETTO";
+            wb.SaveAs(path);
+        }
+
+        var h = ImporSiskeudes.Baca(new[] { path });
+        Cek(h.Versi.ContainsKey("Semula") && h.Versi.ContainsKey("Menjadi"), "Impor: versi Semula dan Menjadi dikenali");
+        var s = h.Versi["Semula"]; var m = h.Versi["Menjadi"];
+        Cek(s.Kegiatan.Count == 1 && s.Kegiatan[0].Kode == "2.3.10" && s.Kegiatan[0].Waktu == "6 Bulan", "Impor: kegiatan, kode & waktu");
+        Cek(s.Kegiatan[0].Nama == "Pembangunan Jalan Desa", $"Impor: nama kegiatan tanpa tanda **) ({s.Kegiatan[0].Nama})");
+        Cek(s.Kegiatan[0].Pelaksana == "Pelaksana Uji", "Impor: pelaksana dari lembar rekap");
+        Cek(s.Kegiatan[0].Paket.Count == 1 && s.Kegiatan[0].Paket[0].Nama == "Rabat Beton RT 01", "Impor: paket kegiatan");
+        var rin = s.Kegiatan[0].Paket[0].Rincian;
+        Cek(rin.Count == 4 && rin[1].Volume == 3050 && rin[2].Volume == 0.5m && rin[0].Satuan == "sak", "Impor: volume 3.050 / 0.5 / satuan terbaca benar");
+        Cek(m.Kegiatan[0].Total == 1_332_500m, $"Impor: total Menjadi {m.Kegiatan[0].Total:N0}");
+        Cek(h.Selisih.Any(x => x.Contains("Plastik")), "Impor: salah ketik volume × harga terdeteksi");
+        Cek(s.Pendapatan.Sum(r => r.Jumlah) == 1_000_000 && m.Pendapatan.Sum(r => r.Jumlah) == 900_000 && s.Pendapatan[0].SumberDana == "DDS", "Impor: pendapatan semula/menjadi");
+        Cek(s.PenerimaanPembiayaan.Sum(r => r.Jumlah) == 250_000 && s.PenerimaanPembiayaan[0].Satuan == "Ls", "Impor: pembiayaan (kolom VOL/SAT terpisah)");
+
+        var tahun = S.SkenarioAktif!.Tahun;
+        var a = S.BuatSkenarioDari("Impor Semula", tahun, s, false);
+        var b = S.BuatSkenarioDari("Impor Menjadi", tahun, m, false);
+        Cek(a != null && b != null && S.MuatDataSkenarioLain(b!)!.Kegiatan.Count == 1, "Impor: skenario tersimpan");
+        var doc = Laporan.BuatPerubahan(S.Desa, a!, s, b!, m);
+        Cek(doc.Blocks.Count > 5, "Laporan Perubahan (Semula – Menjadi)");
+        S.HapusSkenario(a!);
+        S.HapusSkenario(b!);
+        S.SkenarioAktif = S.SkenarioTahunIni.First(x => x.Nama == "Hasil Musdes");
     }
 
     static void IsiContoh(AppState S)
@@ -238,6 +325,19 @@ public static class UjiOtomatis
         Tunggu();
         Render(pv, Path.Combine(folder, "pratinjau.png"));
         pv.Close();
+        var pv2 = new PratinjauWindow(Laporan.Perubahan) { Width = 1100, Height = 800, Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+        pv2.Show();
+        Tunggu();
+        Render(pv2, Path.Combine(folder, "pratinjau_perubahan.png"));
+        AuditTampilan.Periksa(pv2, "pratinjau perubahan");
+        pv2.Close();
+        var hasilImpor = ImporSiskeudes.Baca(new[] { Path.Combine(folder, "tiruan_siskeudes.xlsx") });
+        var di = new DialogImpor(hasilImpor, DateTime.Today.Year) { Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+        di.Show();
+        Tunggu();
+        Render(di, Path.Combine(folder, "dialog_impor.png"));
+        AuditTampilan.Periksa(di, "dialog impor");
+        di.Close();
         w.Close();
     }
 

@@ -302,6 +302,68 @@ public partial class MainWindow : Window
         }
     }
 
+    void Impor_Click(object sender, RoutedEventArgs e)
+    {
+        if (S.FilePath == null) return;
+        AkhiriIsian();
+        var dlg = new OpenFileDialog
+        {
+            Filter = "File Excel (*.xlsx)|*.xlsx",
+            Multiselect = true,
+            Title = "Pilih file Excel APBDes dari Siskeudes (boleh beberapa: RAB, Pendapatan, Pembiayaan)"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        ImporSiskeudes.Hasil h;
+        try
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            h = ImporSiskeudes.Baca(dlg.FileNames);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Impor Siskeudes");
+            Pesan.Galat("File tidak dapat dibaca. Pastikan formatnya .xlsx dan file tidak sedang dibuka di Excel.", ex);
+            return;
+        }
+        finally { Mouse.OverrideCursor = null; }
+
+        bool kosong = h.Versi.Values.All(d => d.Kegiatan.Count == 0 && d.Pendapatan.Count == 0 && d.PenerimaanPembiayaan.Count == 0 && d.PengeluaranPembiayaan.Count == 0);
+        if (kosong)
+        {
+            Pesan.Peringatan("Tidak ada data anggaran yang dikenali di file tersebut.\n\nFile yang didukung: RAB per kegiatan, Rencana Anggaran Pendapatan, dan Rencana Anggaran Pembiayaan " +
+                             "dengan kolom KODE, URAIAN, SUMBER DANA, VOLUME, HARGA SATUAN, JUMLAH.");
+            return;
+        }
+        var d = new DialogImpor(h, S.SkenarioAktif?.Tahun ?? DateTime.Today.Year) { Owner = this };
+        if (d.ShowDialog() != true) return;
+
+        if (d.TambahReferensi)
+        {
+            foreach (var (k, n) in h.RekeningBaru) if (!S.Referensi.Rekening.Any(r => r.Kode == k)) S.Referensi.Rekening.Add(new RefRekening { Kode = k, Nama = n });
+            foreach (var (k, n) in h.KegiatanBaru) if (!S.Referensi.Kegiatan.Any(r => r.Kode == k)) S.Referensi.Kegiatan.Add(new RefKegiatan { Kode = k, Nama = n });
+        }
+        if (d.TambahPelaksana)
+            foreach (var nama in h.Pelaksana.Values.Distinct(StringComparer.OrdinalIgnoreCase))
+                if (!S.Desa.Perangkat.Any(p => string.Equals(p.Nama, nama, StringComparison.OrdinalIgnoreCase)))
+                    S.Desa.Perangkat.Add(new Perangkat { Nama = nama, Jabatan = "Pelaksana Kegiatan" });
+        S.PerbaruiDaftarReferensi();
+
+        var pilihan = d.Pilihan.ToList();
+        for (int i = 0; i < pilihan.Count; i++)
+        {
+            var data = h.Versi[pilihan[i].versi];
+            foreach (var k in data.Kegiatan)
+            {
+                if (string.IsNullOrWhiteSpace(k.Lokasi)) k.Lokasi = S.Desa.NamaDesa;
+                foreach (var p in k.Paket) if (string.IsNullOrWhiteSpace(p.Lokasi)) p.Lokasi = k.Lokasi;
+            }
+            S.BuatSkenarioDari(pilihan[i].nama, d.Tahun, data, pilih: i == pilihan.Count - 1);
+        }
+        Buka("beranda");
+        Pesan.Info($"{pilihan.Count} skenario berhasil diimpor ke tahun {d.Tahun}." +
+                   (pilihan.Count > 1 ? "\n\nGunakan Simulasi › Bandingkan Skenario atau Laporan › Perubahan APBDes untuk melihat Semula – Menjadi." : ""));
+    }
+
     void FolderData_Click(object sender, RoutedEventArgs e) => UiBantu.BukaFolder(Path.GetDirectoryName(S.FilePath ?? Folder.DokumenDefault)!);
     void FolderCadangan_Click(object sender, RoutedEventArgs e) => UiBantu.BukaFolder(Folder.Cadangan);
     void Keluar_Click(object sender, RoutedEventArgs e) => Close();
