@@ -18,7 +18,7 @@ public sealed class AppState : Bindable
     Database? _db;
     readonly DispatcherTimer _timerSimpan;
     readonly DispatcherTimer _timerHitung;
-    string _lastDesa = "", _lastRef = "", _lastData = "";
+    string _lastDesa = "", _lastRef = "", _lastData = "", _lastRencana = "";
     readonly List<string> _undo = new();
     readonly List<string> _redo = new();
     bool _galatDitampilkan;
@@ -62,6 +62,10 @@ public sealed class AppState : Bindable
 
     DataDesa _desa = new();
     public DataDesa Desa { get => _desa; private set => Set(ref _desa, value); }
+
+    DataPerencanaan _rencana = new();
+    /// <summary>RPJMDes & RKPDes (lintas tahun dan skenario).</summary>
+    public DataPerencanaan Perencanaan { get => _rencana; private set => Set(ref _rencana, value); }
 
     Referensi _ref = DefaultReferensi.Buat();
     public Referensi Referensi { get => _ref; private set => Set(ref _ref, value); }
@@ -211,16 +215,32 @@ public sealed class AppState : Bindable
             Log.Error(ex, "Migrasi referensi");
         }
 
+        DataPerencanaan rencana;
+        try
+        {
+            var j = db.GetMeta("perencanaan");
+            rencana = (j == null ? null : Deserialize<DataPerencanaan>(j)) ?? new DataPerencanaan();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Muat perencanaan");
+            Pesan.Galat("Data perencanaan (RPJMDes/RKPDes) di file ini tidak terbaca dan dimulai kosong.", ex);
+            rencana = new DataPerencanaan();
+        }
+
         Desa = desa;
         Referensi = refr;
+        Perencanaan = rencana;
         _lastDesa = Serialize(desa);
         _lastRef = Serialize(refr);
+        _lastRencana = Serialize(rencana);
         try
         {
             db.InTransaction(() =>
             {
                 db.SetMeta("desa", _lastDesa);
                 db.SetMeta("referensi", _lastRef);
+                db.SetMeta("perencanaan", _lastRencana);
             });
         }
         catch (Exception ex)
@@ -338,11 +358,13 @@ public sealed class AppState : Bindable
         {
             string desa = Serialize(Desa);
             string rf = Serialize(Referensi);
+            string rencana = Serialize(Perencanaan);
+            bool ubahRencana = rencana != _lastRencana;
             string? data = _data != null && _aktif != null ? Serialize(_data) : null;
             bool ubahDesa = desa != _lastDesa;
             bool ubahRef = rf != _lastRef;
             bool ubahData = data != null && data != _lastData;
-            if (!ubahDesa && !ubahRef && !ubahData)
+            if (!ubahDesa && !ubahRef && !ubahData && !ubahRencana)
             {
                 if (GagalSimpan) { GagalSimpan = false; StatusSimpan = "Semua perubahan tersimpan."; }
                 return true;
@@ -353,11 +375,13 @@ public sealed class AppState : Bindable
             {
                 if (ubahDesa) _db.SetMeta("desa", desa);
                 if (ubahRef) _db.SetMeta("referensi", rf);
+                if (ubahRencana) _db.SetMeta("perencanaan", rencana);
                 if (ubahData) _db.SimpanData(_aktif!.Id, data!, now);
             });
 
             if (ubahDesa) _lastDesa = desa;
             if (ubahRef) _lastRef = rf;
+            if (ubahRencana) _lastRencana = rencana;
             if (ubahData)
             {
                 _undo.Add(_lastData);
@@ -407,6 +431,7 @@ public sealed class AppState : Bindable
                 ["waktu"] = DateTime.Now,
                 ["skenario"] = _aktif == null ? null : new { _aktif.Id, _aktif.Tahun, _aktif.Nama },
                 ["desa"] = Desa,
+                ["perencanaan"] = Perencanaan,
                 ["referensi"] = Referensi,
                 ["data"] = _data
             };

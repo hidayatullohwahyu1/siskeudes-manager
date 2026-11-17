@@ -13,7 +13,10 @@ public static class Laporan
     public const string Pendapatan = "Rencana Anggaran Pendapatan";
     public const string Pembiayaan = "Rencana Anggaran Pembiayaan";
     public const string Perubahan = "Perubahan APBDes (Semula – Menjadi)";
-    public static readonly string[] Jenis = { Ringkasan, Pendapatan, Rab, Pembiayaan, Perubahan, SiapInput };
+    public const string Rpjm = "RPJMDes";
+    public const string Rkp = "RKPDes";
+    public const string Rak = "Rencana Anggaran Kas (RAK)";
+    public static readonly string[] Jenis = { Ringkasan, Rpjm, Rkp, Pendapatan, Rab, Pembiayaan, Rak, Perubahan, SiapInput };
 
     static readonly Brush Garis = new SolidColorBrush(Color.FromRgb(0x88, 0x92, 0xA0));
     static readonly Brush LatarKepala = new SolidColorBrush(Color.FromRgb(0xE3, 0xE9, 0xF1));
@@ -49,6 +52,9 @@ public static class Laporan
             case Pendapatan: IsiRekening(doc, "PENDAPATAN", data.Pendapatan, null, null); TandaTangan(doc, desa); break;
             case Pembiayaan: IsiRekening(doc, "PENERIMAAN PEMBIAYAAN", data.PenerimaanPembiayaan, "PENGELUARAN PEMBIAYAAN", data.PengeluaranPembiayaan); TandaTangan(doc, desa); break;
             case Perubahan: doc.Blocks.Add(Teks("Pilih skenario Semula di bagian atas jendela pratinjau.")); break;
+            case Rpjm: IsiRpjm(doc, AppState.Instance.Perencanaan); TandaTangan(doc, desa); break;
+            case Rkp: IsiRkp(doc, AppState.Instance.Perencanaan, info.Tahun); TandaTangan(doc, desa); break;
+            case Rak: IsiRak(doc, data); TandaTangan(doc, desa); break;
             default: IsiRingkasan(doc, desa, data, hasil); break;
         }
         return doc;
@@ -256,6 +262,102 @@ public static class Laporan
         p.Inlines.Add(new LineBreak());
         p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(nama) ? "( ................................ )" : nama) { FontWeight = FontWeights.SemiBold, TextDecorations = TextDecorations.Underline });
         return new TableCell(p);
+    }
+
+    // ------------------------------------------------------------ Perencanaan & Anggaran Kas
+
+    static void IsiRpjm(FlowDocument doc, DataPerencanaan r)
+    {
+        doc.Blocks.Add(Teks($"Periode RPJMDes: {r.Periode}" + (r.NomorPerdes != "" ? $"  ·  Perdes: {r.NomorPerdes}" : "")));
+        doc.Blocks.Add(Judul("A. Visi"));
+        doc.Blocks.Add(Teks(r.Visi == "" ? "(belum diisi)" : r.Visi));
+        doc.Blocks.Add(Judul("B. Misi"));
+        if (r.Misi.Count == 0) doc.Blocks.Add(Teks("(belum diisi)"));
+        foreach (var m in r.Misi.OrderBy(m => m.No)) doc.Blocks.Add(Teks($"{m.No}. {m.Uraian}"));
+        doc.Blocks.Add(Judul("C. Rencana Kegiatan"));
+        var t = new Tabel(new double[] { 1.1, 3.6, 1.5, 1.3, 1.4, 1.3, 1.8, 0.8 },
+            new[] { "Kode", "Kegiatan", "Lokasi", "Volume", "Sasaran", "Tahun", "Perkiraan Biaya (Rp)", "SD" },
+            new[] { false, false, false, true, false, false, true, false });
+        foreach (var bid in r.KegiatanRpjm.GroupBy(k => k.KodeSubBidang.Split('.')[0]).OrderBy(g => g.Key, KodeComparer.Instance))
+        {
+            t.Grup($"{bid.Key}. {Lookup.NamaBidang(bid.Key).ToUpperInvariant()}");
+            foreach (var k in bid.OrderBy(k => k.Kode, KodeComparer.Instance))
+                t.Tambah(k.Kode + ".", k.Nama, k.Lokasi, $"{N(k.Volume)} {k.Satuan}", k.SasaranManfaat, k.TahunPelaksanaan, N0(k.PerkiraanBiaya), k.SumberDana);
+        }
+        t.Tebal("", "JUMLAH", "", "", "", "", N0(r.KegiatanRpjm.Sum(k => k.PerkiraanBiaya)), "");
+        doc.Blocks.Add(t.T);
+    }
+
+    static void IsiRkp(FlowDocument doc, DataPerencanaan r, int tahun)
+    {
+        var pagu = r.Pagu.Where(p => p.Tahun == tahun).ToList();
+        var keg = r.KegiatanRkp.Where(k => k.Tahun == tahun).ToList();
+        doc.Blocks.Add(Judul($"A. Pagu Indikatif Tahun {tahun}"));
+        var tp = new Tabel(new double[] { 1, 3.4, 2, 2, 2 }, new[] { "Kode", "Sumber Dana", "Pagu (Rp)", "Kegiatan Disepakati (Rp)", "Sisa (Rp)" }, new[] { false, false, true, true, true });
+        foreach (var p in pagu.OrderBy(p => p.SumberDana))
+        {
+            var pakai = keg.Where(k => k.Status == "Disepakati" && string.Equals(k.SumberDana, p.SumberDana, StringComparison.OrdinalIgnoreCase)).Sum(k => k.PaguIndikatif);
+            tp.Tambah(p.SumberDana, Lookup.NamaSumberDana(p.SumberDana), N0(p.Nilai), N0(pakai), N0(p.Nilai - pakai));
+        }
+        tp.Tebal("", "JUMLAH", N0(pagu.Sum(p => p.Nilai)), N0(keg.Where(k => k.Status == "Disepakati").Sum(k => k.PaguIndikatif)), "");
+        doc.Blocks.Add(tp.T);
+
+        foreach (var (judul, status) in new[] { ("B. Kegiatan yang Disepakati", "Disepakati"), ("C. Kegiatan Cadangan", "Cadangan") })
+        {
+            var daftar = keg.Where(k => k.Status == status).ToList();
+            doc.Blocks.Add(Judul(judul));
+            if (daftar.Count == 0) { doc.Blocks.Add(Teks("(tidak ada)")); continue; }
+            var t = new Tabel(new double[] { 1.1, 3.4, 1.4, 1.3, 1.4, 1.1, 1.8, 0.8, 0.7 },
+                new[] { "Kode", "Kegiatan", "Lokasi", "Volume", "Sasaran", "Waktu", "Pagu Indikatif (Rp)", "SD", "Prio" },
+                new[] { false, false, false, true, false, false, true, false, true });
+            foreach (var bid in daftar.GroupBy(k => k.KodeSubBidang.Split('.')[0]).OrderBy(g => g.Key, KodeComparer.Instance))
+            {
+                t.Grup($"{bid.Key}. {Lookup.NamaBidang(bid.Key).ToUpperInvariant()}");
+                foreach (var k in bid.OrderBy(k => k.Kode, KodeComparer.Instance))
+                    t.Tambah(k.Kode + ".", k.Nama, k.Lokasi, $"{N(k.Volume)} {k.Satuan}", k.SasaranManfaat, k.Waktu, N0(k.PaguIndikatif), k.SumberDana, k.Prioritas.ToString());
+            }
+            t.Tebal("", "JUMLAH", "", "", "", "", N0(daftar.Sum(k => k.PaguIndikatif)), "", "");
+            doc.Blocks.Add(t.T);
+        }
+    }
+
+    static void IsiRak(FlowDocument doc, DataSkenario d)
+    {
+        doc.Blocks.Add(Teks("Pilih orientasi Landscape saat mencetak. Nilai dalam ribuan rupiah (Rp 000).", 11.5));
+        decimal[] Bulan(string kunci) => d.AnggaranKas.FirstOrDefault(x => x.Kunci == kunci)?.Bulan.Take(12).ToArray() ?? new decimal[12];
+        string R(decimal v) => v == 0 ? "-" : Math.Round(v / 1000m).ToString("#,##0", Budaya.Id);
+        void Bagian(string judul, IEnumerable<(string kode, string nama, decimal pagu, decimal[] bulan)> baris)
+        {
+            doc.Blocks.Add(Judul(judul));
+            var lebar = new List<double> { 0.9, 2.4, 1.1 };
+            lebar.AddRange(Enumerable.Repeat(0.75, 12));
+            var kepala = new List<string> { "Kode", "Uraian", "Anggaran" };
+            kepala.AddRange(new[] { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des" });
+            var kanan = new List<bool> { false, false, true };
+            kanan.AddRange(Enumerable.Repeat(true, 12));
+            var t = new Tabel(lebar.ToArray(), kepala.ToArray(), kanan.ToArray());
+            t.T.FontSize = 10;
+            var total = new decimal[12];
+            decimal totalPagu = 0;
+            foreach (var (kode, nama, pagu, bulan) in baris)
+            {
+                var isi = new List<string> { kode, nama, R(pagu) };
+                isi.AddRange(bulan.Select(R));
+                t.Tambah(isi.ToArray());
+                for (int i = 0; i < 12; i++) total[i] += bulan[i];
+                totalPagu += pagu;
+            }
+            var jml = new List<string> { "", "JUMLAH", R(totalPagu) };
+            jml.AddRange(total.Select(R));
+            t.Tebal(jml.ToArray());
+            doc.Blocks.Add(t.T);
+        }
+        Bagian("A. Pendapatan", d.Pendapatan.GroupBy(r => r.KodeRekening).OrderBy(g => g.Key, KodeComparer.Instance)
+            .Select(g => (g.Key + ".", Lookup.NamaRekening(g.Key), g.Sum(r => r.Jumlah), Bulan("R:" + g.Key))));
+        Bagian("B. Belanja", d.Kegiatan.OrderBy(k => k.Kode, KodeComparer.Instance)
+            .Select(k => (k.Kode + ".", k.Nama, k.Total, Bulan("K:" + k.Id))));
+        Bagian("C. Pembiayaan", d.PenerimaanPembiayaan.Concat(d.PengeluaranPembiayaan).GroupBy(r => r.KodeRekening).OrderBy(g => g.Key, KodeComparer.Instance)
+            .Select(g => (g.Key + ".", Lookup.NamaRekening(g.Key), g.Sum(r => r.Jumlah), Bulan("R:" + g.Key))));
     }
 
     // ------------------------------------------------------------ Perubahan (Semula – Menjadi)

@@ -45,6 +45,15 @@ public class BantuanView : UserControl
             "4. Data Entri › Penganggaran › Posting APBDes: kunci skenario yang sudah disepakati.",
             "5. Laporan: cetak/PDF atau ekspor Excel, termasuk Daftar Siap Input Siskeudes dan Perubahan APBDes (Semula – Menjadi).");
 
+        Bagian("Perencanaan (sebelum penganggaran)",
+            "Data Entri › Perencanaan › RPJMDes dan RKPDes: isi periode & visi, misi, lalu Kegiatan RPJMDes beserta tahun pelaksanaannya.",
+            "RKPDes mengikuti tahun skenario aktif: isi Pagu Indikatif per sumber dana, lalu tekan \"Ambil dari RPJMDes\" dan tandai kegiatan Disepakati atau Cadangan.",
+            "Tekan \"Kirim ke Isian Data Anggaran\" untuk membuat kegiatan & paket di skenario aktif; rincian RAB diisi di Isian Data Anggaran › 3. Belanja.");
+
+        Bagian("Anggaran Kas Desa",
+            "Data Entri › Penganggaran › Anggaran Kas Desa: jadwalkan anggaran setiap kegiatan dan rekening pendapatan per bulan.",
+            "Klik dua kali sel bulan untuk mengisi, atau gunakan \"Bagi Rata 12 Bulan\". Kolom Belum Dijadwalkan harus 0 (hijau).");
+
         Bagian("Mulai dari APBDes yang sudah ada",
             "File › Impor APBDes dari Excel Siskeudes: pilih file RAB per kegiatan, Rencana Anggaran Pendapatan, dan Rencana Anggaran Pembiayaan (boleh sekaligus).",
             "Jika file berisi kolom SEMULA dan MENJADI, aplikasi membuat dua skenario sehingga bisa langsung dibandingkan.",

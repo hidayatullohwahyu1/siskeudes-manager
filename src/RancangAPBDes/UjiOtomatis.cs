@@ -87,6 +87,7 @@ public static class UjiOtomatis
             }
 
             UjiImpor(folder, S);
+            UjiPerencanaanDanKas(S);
 
             // File rusak / bukan data
             var palsu = Path.Combine(folder, "palsu.apbdes");
@@ -144,6 +145,35 @@ public static class UjiOtomatis
             File.WriteAllText(Path.Combine(folder, "hasil.txt"), Hasil.ToString());
         }
         return _gagal;
+    }
+
+    static void UjiPerencanaanDanKas(AppState S)
+    {
+        var tahun = S.SkenarioAktif!.Tahun;
+        var r = S.Perencanaan;
+        r.TahunAwal = tahun - 1; r.TahunAkhir = tahun + 4;
+        r.Visi = "Terwujudnya desa yang maju, mandiri, dan sejahtera melalui tata kelola pemerintahan yang baik";
+        r.Misi.Add(new Misi { No = 1, Uraian = "Meningkatkan kualitas pelayanan publik" });
+        r.Misi.Add(new Misi { No = 2, Uraian = "Membangun sarana dan prasarana desa yang merata" });
+        r.KegiatanRpjm.Add(new KegiatanRpjm { KodeSubBidang = "2.3", NoUrut = 11, Nama = "Pembangunan Jalan Lingkungan Permukiman Dusun Dua", Lokasi = "Dusun Dua", Volume = 300, Satuan = "m", SasaranManfaat = "120 KK", TahunPelaksanaan = $"{tahun}, {tahun + 2}", PerkiraanBiaya = 150_000_000, SumberDana = "DDS" });
+        r.KegiatanRpjm.Add(new KegiatanRpjm { KodeSubBidang = "2.2", NoUrut = 2, Nama = "Penyelenggaraan Posyandu", Lokasi = "Semua dusun", Volume = 12, Satuan = "bulan", TahunPelaksanaan = $"{tahun + 1}", PerkiraanBiaya = 40_000_000, SumberDana = "DDS" });
+        r.Pagu.Add(new PaguIndikatif { Tahun = tahun, SumberDana = "DDS", Nilai = 1_200_000_000 });
+
+        var pv = new PerencanaanView();
+        Cek(pv.AmbilDariRpjm() == 1, "Perencanaan: ambil dari RPJMDes hanya kegiatan tahun ini");
+        var jumlahKeg = S.Data!.Kegiatan.Count;
+        Cek(pv.KirimKeApbdes(false) == 1 && S.Data.Kegiatan.Count == jumlahKeg + 1, "Perencanaan: RKPDes dikirim ke Isian Data Anggaran");
+        var kBaru = S.Data.Kegiatan.First(k => k.Kode == "2.3.11");
+        Cek(kBaru.Paket.Count == 1 && kBaru.Paket[0].SumberDana == "DDS" && kBaru.Catatan.Contains("150.000.000"), "Perencanaan: paket & catatan pagu indikatif terbentuk");
+        Cek(pv.KirimKeApbdes(false) == 0, "Perencanaan: kirim ulang tidak menggandakan kegiatan");
+
+        var keg = S.Data.Kegiatan.First(k => k.Total > 0);
+        var kas = S.Data.Kas("K:" + keg.Id);
+        AnggaranKasView.IsiRata(kas, keg.Total);
+        Cek(kas.Bulan.Sum() == keg.Total && kas.Bulan.Count == 12, "Anggaran kas: bagi rata 12 bulan tepat sama dengan pagu");
+        foreach (var j in new[] { Laporan.Rpjm, Laporan.Rkp, Laporan.Rak })
+            Cek(Laporan.Buat(j, S.Desa, S.SkenarioAktif!, S.Data, S.Hasil!).Blocks.Count > 2, "Laporan: " + j);
+        S.SimpanSegera();
     }
 
     /// <summary>Impor dari Excel tiruan berformat Siskeudes (RAB, pendapatan, pembiayaan, rekap PKA).</summary>
@@ -325,6 +355,29 @@ public static class UjiOtomatis
                 if (h is ParameterView pv0)
                 {
                     pv0.BukaTab(0); Tunggu();
+                }
+                if (h is PerencanaanView pr)
+                {
+                    foreach (var (bagian, tab) in new[] { (0, 0), (0, 1), (0, 2), (1, 0), (1, 1) })
+                    {
+                        pr.Buka(bagian, tab); Tunggu();
+                        Render(w, Path.Combine(folder, $"{nama}_perencanaan_{bagian}{tab}.png"));
+                        CekTerpotong(w, $"{nama}/perencanaan {bagian}.{tab}");
+                        AuditTampilan.Periksa(w, $"{nama}/perencanaan {bagian}.{tab}");
+                        if (nama == "1366x768") AuditTampilan.KlikSemua(w, $"perencanaan {bagian}.{tab}");
+                    }
+                    continue;
+                }
+                if (h is AnggaranKasView kv)
+                {
+                    for (int b = 0; b < 3; b++)
+                    {
+                        kv.BukaBagian(b); Tunggu();
+                        Render(w, Path.Combine(folder, $"{nama}_kas_{b}.png"));
+                        CekTerpotong(w, $"{nama}/kas {b}");
+                        AuditTampilan.Periksa(w, $"{nama}/kas {b}");
+                    }
+                    continue;
                 }
                 Render(w, Path.Combine(folder, $"{nama}_{kunci}.png"));
                 CekTerpotong(w, $"{nama}/{kunci}");

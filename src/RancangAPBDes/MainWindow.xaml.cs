@@ -17,7 +17,7 @@ public partial class MainWindow : Window
     WindowState _stateSebelumPenuh;
     bool _layarPenuh;
 
-    public static readonly string[] DaftarHalaman = { "beranda", "isian", "banding", "desa", "parameter", "bantuan" };
+    public static readonly string[] DaftarHalaman = { "beranda", "perencanaan", "isian", "kas", "banding", "desa", "parameter", "bantuan" };
 
     public MainWindow()
     {
@@ -33,6 +33,8 @@ public partial class MainWindow : Window
                 case "pendapatan": ((IsianAnggaranView)Buka("isian")).Buka(1, 0); break;
                 case "belanja": ((IsianAnggaranView)Buka("isian")).Buka(2, 0); break;
                 case "pembiayaan": ((IsianAnggaranView)Buka("isian")).Buka(3, 0); break;
+                case "perencanaan": ((PerencanaanView)Buka("perencanaan")).Buka(S.Perencanaan.KegiatanRkp.Any() ? 1 : 0, S.Perencanaan.KegiatanRkp.Any() ? 1 : 2); break;
+                case "kas": Buka("kas"); break;
                 case "periksa": (Buka("beranda") as RingkasanView)?.GulirKePemeriksaan(); break;
                 case "posting": Posting_Click(this, new RoutedEventArgs()); break;
                 case "cetak": BukaPratinjau(Laporan.SiapInput); break;
@@ -91,6 +93,8 @@ public partial class MainWindow : Window
             {
                 "beranda" => new BingkaiForm("Beranda – Ringkasan APBDes", new RingkasanView(), null, "Laporan › Ringkasan APBDes"),
                 "isian" => new BingkaiForm("Isian Data Anggaran", new IsianAnggaranView(), tutup, "Data Entri › Penganggaran › Isian Data Anggaran"),
+                "perencanaan" => new BingkaiForm("RPJMDes dan RKPDes", new PerencanaanView(), tutup, "Data Entri › Perencanaan › RPJMDes dan RKPDes"),
+                "kas" => new BingkaiForm("Anggaran Kas Desa", new AnggaranKasView(), tutup, "Data Entri › Penganggaran › Anggaran Kas Desa"),
                 "banding" => new BingkaiForm("Perbandingan Anggaran Semula – Menjadi", new BandingView(), tutup, "Simulasi › Bandingkan Skenario"),
                 "desa" => new BingkaiForm("Data Umum Desa", new DataDesaView(), tutup, "Data Entri › Data Umum Desa"),
                 "parameter" => new BingkaiForm("Parameter", new ParameterView(), tutup, "Parameter"),
@@ -120,6 +124,8 @@ public partial class MainWindow : Window
     void DataUmum_Click(object sender, RoutedEventArgs e) => ((DataDesaView)Buka("desa")).BukaTab(0);
     void Pelaksana_Click(object sender, RoutedEventArgs e) => ((DataDesaView)Buka("desa")).BukaTab(1);
     void Bantuan_Click(object sender, RoutedEventArgs e) => Buka("bantuan");
+    void Perencanaan_Click(object sender, RoutedEventArgs e) => Buka("perencanaan");
+    void Kas_Click(object sender, RoutedEventArgs e) => Buka("kas");
 
     void Parameter_Click(object sender, RoutedEventArgs e)
     {

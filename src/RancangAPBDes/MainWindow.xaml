@@ -51,9 +51,13 @@
                 <MenuItem Header="_Data Entri">
                     <MenuItem Header="Data Umum Desa" Click="DataUmum_Click"/>
                     <Separator/>
+                    <MenuItem Header="Perencanaan">
+                        <MenuItem Header="RPJMDes dan RKPDes" Click="Perencanaan_Click"/>
+                    </MenuItem>
                     <MenuItem Header="Penganggaran">
                         <MenuItem Header="Isian Data Anggaran" Click="Isian_Click" InputGestureText="F3"/>
                         <MenuItem Header="Impor dari Excel Siskeudes…" Click="Impor_Click"/>
+                        <MenuItem Header="Anggaran Kas Desa" Click="Kas_Click"/>
                         <MenuItem x:Name="MenuPosting" Header="Posting APBDes (kunci skenario)…" Click="Posting_Click"/>
                     </MenuItem>
                 </MenuItem>

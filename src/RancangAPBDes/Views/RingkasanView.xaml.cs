@@ -34,6 +34,10 @@ public partial class RingkasanView : UserControl
     /// <summary>Perintah navigasi dari panel Langkah Kerja (diisi oleh jendela utama).</summary>
     public static Action<string>? Perintah { get; set; }
 
+    static bool KasLengkap(DataSkenario d) =>
+        d.Kegiatan.Count > 0 && d.Kegiatan.All(k => k.Total == 0 ||
+            (d.AnggaranKas.FirstOrDefault(x => x.Kunci == "K:" + k.Id)?.Bulan.Sum() ?? 0) == k.Total);
+
     void IsiLangkah()
     {
         PanelLangkah.Children.Clear();
@@ -47,6 +51,11 @@ public partial class RingkasanView : UserControl
             ("Data Umum Desa", "Data Entri › Data Umum Desa",
                 S.Desa.NamaDesa != "" && S.Desa.Perangkat.Count > 0,
                 S.Desa.NamaDesa == "" ? "Nama desa belum diisi" : S.Desa.Perangkat.Count == 0 ? "Pelaksana kegiatan belum diisi" : $"{S.Desa.NamaDesa} · {S.Desa.Perangkat.Count} pelaksana", "desa"),
+            ("Perencanaan: RPJMDes & RKPDes (opsional)", "Data Entri › Perencanaan › RPJMDes dan RKPDes",
+                S.Perencanaan.KegiatanRkp.Any(k => k.Tahun == info.Tahun),
+                S.Perencanaan.KegiatanRkp.Any(k => k.Tahun == info.Tahun)
+                    ? $"RKPDes {info.Tahun}: {S.Perencanaan.KegiatanRkp.Count(k => k.Tahun == info.Tahun && k.Status == "Disepakati")} kegiatan disepakati"
+                    : $"RPJMDes {S.Perencanaan.KegiatanRpjm.Count} kegiatan · RKPDes {info.Tahun} belum diisi", "perencanaan"),
             ("Kegiatan (Bidang › Sub Bidang › Kegiatan › Paket)", "Data Entri › Penganggaran › Isian Data Anggaran › 1. Kegiatan",
                 d.Kegiatan.Count > 0, d.Kegiatan.Count == 0 ? "Belum ada kegiatan" : $"{d.Kegiatan.Count} kegiatan, {d.Kegiatan.Sum(k => k.Paket.Count)} paket", "kegiatan"),
             ("Pendapatan (RAP › RAP Rinci)", "Isian Data Anggaran › 2. Pendapatan",
@@ -56,6 +65,8 @@ public partial class RingkasanView : UserControl
                 h.TotalBelanja == 0 ? "Belum ada RAB" : kegKosong > 0 ? $"{Kalkulasi.Rp(h.TotalBelanja)} · {kegKosong} kegiatan belum ada RAB" : Kalkulasi.Rp(h.TotalBelanja), "belanja"),
             ("Pembiayaan 1 & 2 (bila ada SiLPA / penyertaan modal)", "Isian Data Anggaran › 4. Pembiayaan 1 / 5. Pembiayaan 2",
                 true, h.PenerimaanPembiayaan + h.PengeluaranPembiayaan == 0 ? "Tidak ada (opsional)" : $"Penerimaan {Kalkulasi.Rp(h.PenerimaanPembiayaan)} · Pengeluaran {Kalkulasi.Rp(h.PengeluaranPembiayaan)}", "pembiayaan"),
+            ("Anggaran Kas Desa (opsional)", "Data Entri › Penganggaran › Anggaran Kas Desa",
+                KasLengkap(d), KasLengkap(d) ? "Semua kegiatan sudah dijadwalkan per bulan" : "Belum semua kegiatan dijadwalkan", "kas"),
             ("Periksa keseimbangan & aturan", "Beranda › Dana per Sumber Dana, Cek Aturan, Peringatan",
                 h.JumlahKesalahan == 0 && h.SisaAnggaran >= 0,
                 h.JumlahKesalahan > 0 ? $"{h.JumlahKesalahan} kesalahan perlu diperbaiki" : h.SisaAnggaran < 0 ? $"Defisit {Kalkulasi.Rp(-h.SisaAnggaran)}" : "Tidak ada kesalahan", "periksa"),
@@ -95,7 +106,7 @@ public partial class RingkasanView : UserControl
                 Foreground = (Brush)FindResource(selesai ? "Hijau" : perintah is "periksa" or "kegiatan" or "pendapatan" or "belanja" or "desa" ? "Merah" : "TeksUtama"),
                 FontWeight = selesai ? FontWeights.Normal : FontWeights.SemiBold
             };
-            if (perintah is "pembiayaan" or "cetak" or "posting") st.Foreground = (Brush)FindResource(selesai ? "Hijau" : "TeksUtama");
+            if (perintah is "pembiayaan" or "cetak" or "posting" or "perencanaan" or "kas") st.Foreground = (Brush)FindResource(selesai ? "Hijau" : "TeksUtama");
             Grid.SetColumn(st, 2);
             g.Children.Add(st);
             var b = new Button { Content = perintah == "cetak" ? "Cetak…" : perintah == "posting" ? (info.IsFinal ? "Lihat" : "Posting…") : "Buka", Margin = new Thickness(0, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center, MinWidth = 80 };

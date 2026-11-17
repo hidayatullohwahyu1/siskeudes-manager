@@ -227,6 +227,16 @@ public class DataSkenario : Model
     /// <summary>Bidang & sub bidang yang ditambahkan desa (seperti tab Bidang/Sub Bidang di Siskeudes).</summary>
     public TrackedCollection<string> BidangDipakai { get; set; } = new();
     public TrackedCollection<string> SubBidangDipakai { get; set; } = new();
+    /// <summary>Anggaran Kas Desa: rencana per bulan untuk tiap kegiatan dan rekening pendapatan/pembiayaan.</summary>
+    public TrackedCollection<BarisKas> AnggaranKas { get; set; } = new();
+
+    public BarisKas Kas(string kunci)
+    {
+        var b = AnggaranKas.FirstOrDefault(x => x.Kunci == kunci);
+        if (b == null) { b = new BarisKas { Kunci = kunci }; AnggaranKas.Add(b); }
+        b.Pastikan12();
+        return b;
+    }
 
     /// <summary>Bidang yang tampil: yang ditambahkan + yang sudah punya kegiatan.</summary>
     public List<string> DaftarBidang() =>
