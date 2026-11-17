@@ -58,6 +58,7 @@
                         <MenuItem Header="Isian Data Anggaran" Click="Isian_Click" InputGestureText="F3"/>
                         <MenuItem Header="Impor dari Excel Siskeudes…" Click="Impor_Click"/>
                         <MenuItem Header="Anggaran Kas Desa" Click="Kas_Click"/>
+                        <MenuItem Header="Peraturan APBDes" Click="Perdes_Click"/>
                         <MenuItem x:Name="MenuPosting" Header="Posting APBDes (kunci skenario)…" Click="Posting_Click"/>
                     </MenuItem>
                 </MenuItem>
@@ -73,6 +74,7 @@
                     <MenuItem Header="Ringkasan APBDes (Beranda)" Click="Beranda_Click"/>
                     <MenuItem Header="Pratinjau &amp; Cetak Laporan…" Click="Cetak_Click" InputGestureText="Ctrl+P"/>
                     <MenuItem Header="Ekspor ke Excel…" Click="Ekspor_Click"/>
+                    <MenuItem Header="Ekspor Excel Format Siskeudes (RAB per Kegiatan)…" Click="EksporSiskeudes_Click"/>
                 </MenuItem>
                 <MenuItem Header="_Tampilan">
                     <MenuItem Header="Perbesar" Click="Perbesar_Click" InputGestureText="Ctrl +"/>

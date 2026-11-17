@@ -83,6 +83,9 @@ public static class AuditTampilan
     }
 
     /// <summary>Klik setiap tombol yang aktif pada halaman data (dialog dijawab "batal" secara otomatis).</summary>
+    /// <summary>Pencatat langkah (untuk menemukan titik macet).</summary>
+    public static Action<string>? Jejak { get; set; }
+
     public static void KlikSemua(Window w, string halaman)
     {
         foreach (var h in UiBantu.Turunan<HalamanData>(w).Where(x => x.IsVisible).ToList())
@@ -92,6 +95,7 @@ public static class AuditTampilan
                 var nama = b.Content?.ToString() ?? "?";
                 if (nama.StartsWith("Lihat") || nama.StartsWith("Impor") || nama == "Tutup" || nama == "Cetak") continue; // berpindah halaman / membuka jendela
                 var sebelum = Pesan.CatatanUji.Count;
+                Jejak?.Invoke($"klik {halaman} › {h.JudulData} › {nama}");
                 try
                 {
                     b.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));

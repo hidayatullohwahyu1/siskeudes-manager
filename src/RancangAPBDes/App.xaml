@@ -231,6 +231,8 @@
             <Setter Property="MinRowHeight" Value="25"/>
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
+            <!-- Selalu tampil: bila muncul-hilang, lebar kolom & tinggi baris saling memicu tanpa henti (aplikasi macet) -->
+            <Setter Property="VerticalScrollBarVisibility" Value="Visible"/>
             <Setter Property="ClipboardCopyMode" Value="IncludeHeader"/>
         </Style>
 

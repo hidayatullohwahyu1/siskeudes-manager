@@ -91,7 +91,7 @@ public class BantuanView : UserControl
         Content = new Border
         {
             Background = Brushes.White, BorderBrush = (Brush)Application.Current.FindResource("Garis"), BorderThickness = new Thickness(1),
-            Child = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = sp }
+            Child = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Visible, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = sp }
         };
     }
 }

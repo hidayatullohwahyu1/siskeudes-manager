@@ -169,7 +169,9 @@ public class HalamanData : UserControl
             AturForm(e.NewSize.Width < 760);
             AturTinggiForm();
         };
-        LayoutUpdated += (_, _) => AturTinggiForm();
+        // Bukan LayoutUpdated: penyesuaian di sana bisa saling memicu tanpa henti (aplikasi macet).
+        _barKonteks.SizeChanged += (_, e) => { if (e.HeightChanged) AturTinggiForm(); };
+        _bingkaiBawah.SizeChanged += (_, e) => { if (e.HeightChanged) AturTinggiForm(); };
         Loaded += (_, _) =>
         {
             Bangun();
@@ -447,14 +449,19 @@ public class HalamanData : UserControl
     }
 
     /// <summary>Form tidak boleh mendorong tabel di bawah 80 px atau menutupi tombol; sisanya digulir.</summary>
+    bool _aturTinggi;
+
     void AturTinggiForm()
     {
         var h = ActualHeight;
-        if (h <= 0) return;
+        if (h <= 0 || _aturTinggi) return;
         if (TanpaTabel) { _bingkaiForm.MaxHeight = double.PositiveInfinity; return; }
         var sisa = h - _barKonteks.ActualHeight - _bingkaiBawah.ActualHeight - 80 - 2;
-        var maks = Math.Max(56, Math.Min(sisa, h * 0.5));
-        if (Math.Abs(_bingkaiForm.MaxHeight - maks) > 0.5) _bingkaiForm.MaxHeight = maks;
+        var maks = Math.Round(Math.Max(56, Math.Min(sisa, h * 0.5)));
+        if (Math.Abs(_bingkaiForm.MaxHeight - maks) < 2) return;
+        _aturTinggi = true;
+        try { _bingkaiForm.MaxHeight = maks; }
+        finally { _aturTinggi = false; }
     }
 
     // ================================================================ data

@@ -250,6 +250,13 @@ public class DataSkenario : Model
     string _catatan = "";
     public string Catatan { get => _catatan; set => Set(ref _catatan, value ?? ""); }
 
+    // ---- Peraturan APBDes (Data Entri › Penganggaran › Peraturan APBDes)
+    string _noPerdes = "", _tglPerdes = "", _noPerkades = "", _tglPerkades = "";
+    public string NomorPerdes { get => _noPerdes; set => Set(ref _noPerdes, value ?? ""); }
+    public string TanggalPerdes { get => _tglPerdes; set => Set(ref _tglPerdes, value ?? ""); }
+    public string NomorPerkades { get => _noPerkades; set => Set(ref _noPerkades, value ?? ""); }
+    public string TanggalPerkades { get => _tglPerkades; set => Set(ref _tglPerkades, value ?? ""); }
+
     public void RaiseTotals()
     {
         foreach (var k in Kegiatan) k.RaiseTotals();

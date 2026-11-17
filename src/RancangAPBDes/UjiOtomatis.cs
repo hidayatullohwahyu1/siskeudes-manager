@@ -88,6 +88,7 @@ public static class UjiOtomatis
 
             UjiImpor(folder, S);
             UjiPerencanaanDanKas(S);
+            UjiEksporBolakBalik(folder, S);
 
             // File rusak / bukan data
             var palsu = Path.Combine(folder, "palsu.apbdes");
@@ -123,6 +124,8 @@ public static class UjiOtomatis
     public static int Foto(string fileData, string folder)
     {
         Directory.CreateDirectory(folder);
+        var jejak = Path.Combine(folder, "jejak.txt");
+        AuditTampilan.Jejak = s => File.AppendAllText(jejak, $"{DateTime.Now:HH:mm:ss.fff} {s}{Environment.NewLine}");
         var salinan = Path.Combine(folder, "salinan.apbdes");
         File.Copy(fileData, salinan, overwrite: true);
         AppState.ModeUji = true;
@@ -133,6 +136,7 @@ public static class UjiOtomatis
             var draft = S.SemuaSkenario.FirstOrDefault(s => !s.IsFinal);
             if (draft != null) S.PilihTahunDanSkenario(draft.Tahun, draft.Id);
             S.Hitung();
+            UjiEksporBolakBalik(folder, S);
             AmbilGambar(folder, S);
         }
         catch (Exception ex) { Cek(false, "Pengecualian: " + ex); }
@@ -145,6 +149,33 @@ public static class UjiOtomatis
             File.WriteAllText(Path.Combine(folder, "hasil.txt"), Hasil.ToString());
         }
         return _gagal;
+    }
+
+    /// <summary>Ekspor format Siskeudes lalu impor kembali: angka harus sama persis.</summary>
+    static void UjiEksporBolakBalik(string folder, AppState S)
+    {
+        var aktif = S.SkenarioAktif!;
+        var d = S.Data!;
+        var lain = S.SemuaSkenario.First(s => !ReferenceEquals(s, aktif));
+        var dLain = S.MuatDataSkenarioLain(lain)!;
+        (decimal, decimal, decimal, decimal) Total(DataSkenario x) { var h = Kalkulasi.Hitung(x, S.Referensi); return (h.TotalPendapatan, h.TotalBelanja, h.PenerimaanPembiayaan, h.PengeluaranPembiayaan); }
+
+        var f1 = Path.Combine(folder, "ekspor_rab.xlsx");
+        EksporSiskeudes.Simpan(f1, S.Desa, aktif, d);
+        var h1 = ImporSiskeudes.Baca(new[] { f1 });
+        Cek(h1.Versi.ContainsKey("Anggaran") && Total(h1.Versi["Anggaran"]) == Total(d), $"Ekspor→impor format Siskeudes: total sama {Total(d)}");
+        Cek(h1.Versi["Anggaran"].Kegiatan.Count == d.Kegiatan.Count, "Ekspor→impor: jumlah kegiatan sama");
+        Cek(h1.Selisih.Count == 0, "Ekspor→impor: tidak ada selisih volume × harga" + (h1.Selisih.Count > 0 ? " — " + h1.Selisih[0] : ""));
+
+        var f2 = Path.Combine(folder, "ekspor_perubahan.xlsx");
+        EksporSiskeudes.Simpan(f2, S.Desa, aktif, d, lain, dLain);
+        var h2 = ImporSiskeudes.Baca(new[] { f2 });
+        Cek(h2.Versi.ContainsKey("Semula") && h2.Versi.ContainsKey("Menjadi"), "Ekspor perubahan: kolom Semula & Menjadi");
+        Cek(Total(h2.Versi["Semula"]) == Total(dLain) && Total(h2.Versi["Menjadi"]) == Total(d), $"Ekspor perubahan→impor: total Semula {Total(dLain)} & Menjadi {Total(d)} sama");
+        Cek(h2.Selisih.Count == 0, "Ekspor perubahan→impor: tidak ada selisih" + (h2.Selisih.Count > 0 ? " — " + h2.Selisih[0] : ""));
+
+        foreach (var j in new[] { Laporan.Lampiran1a, Laporan.Lampiran1b, Laporan.Lampiran1c })
+            Cek(Laporan.Buat(j, S.Desa, aktif, d, S.Hasil!).Blocks.Count >= 3, "Laporan: " + j);
     }
 
     static void UjiPerencanaanDanKas(AppState S)
@@ -406,6 +437,11 @@ public static class UjiOtomatis
         Tunggu();
         Render(pv, Path.Combine(folder, "pratinjau.png"));
         pv.Close();
+        var pv3 = new PratinjauWindow(Laporan.Lampiran1c) { Width = 1100, Height = 800, Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+        pv3.Show();
+        Tunggu();
+        Render(pv3, Path.Combine(folder, "pratinjau_lampiran1c.png"));
+        pv3.Close();
         var pv2 = new PratinjauWindow(Laporan.Perubahan) { Width = 1100, Height = 800, Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
         pv2.Show();
         Tunggu();

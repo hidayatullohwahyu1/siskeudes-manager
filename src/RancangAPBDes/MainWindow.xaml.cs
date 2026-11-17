@@ -17,7 +17,7 @@ public partial class MainWindow : Window
     WindowState _stateSebelumPenuh;
     bool _layarPenuh;
 
-    public static readonly string[] DaftarHalaman = { "beranda", "perencanaan", "isian", "kas", "banding", "desa", "parameter", "bantuan" };
+    public static readonly string[] DaftarHalaman = { "beranda", "perencanaan", "isian", "kas", "perdes", "banding", "desa", "parameter", "bantuan" };
 
     public MainWindow()
     {
@@ -95,6 +95,7 @@ public partial class MainWindow : Window
                 "isian" => new BingkaiForm("Isian Data Anggaran", new IsianAnggaranView(), tutup, "Data Entri › Penganggaran › Isian Data Anggaran"),
                 "perencanaan" => new BingkaiForm("RPJMDes dan RKPDes", new PerencanaanView(), tutup, "Data Entri › Perencanaan › RPJMDes dan RKPDes"),
                 "kas" => new BingkaiForm("Anggaran Kas Desa", new AnggaranKasView(), tutup, "Data Entri › Penganggaran › Anggaran Kas Desa"),
+                "perdes" => new BingkaiForm("Peraturan APBDes", new PeraturanView(), tutup, "Data Entri › Penganggaran › Peraturan APBDes"),
                 "banding" => new BingkaiForm("Perbandingan Anggaran Semula – Menjadi", new BandingView(), tutup, "Simulasi › Bandingkan Skenario"),
                 "desa" => new BingkaiForm("Data Umum Desa", new DataDesaView(), tutup, "Data Entri › Data Umum Desa"),
                 "parameter" => new BingkaiForm("Parameter", new ParameterView(), tutup, "Parameter"),
@@ -126,6 +127,7 @@ public partial class MainWindow : Window
     void Bantuan_Click(object sender, RoutedEventArgs e) => Buka("bantuan");
     void Perencanaan_Click(object sender, RoutedEventArgs e) => Buka("perencanaan");
     void Kas_Click(object sender, RoutedEventArgs e) => Buka("kas");
+    void Perdes_Click(object sender, RoutedEventArgs e) => Buka("perdes");
 
     void Parameter_Click(object sender, RoutedEventArgs e)
     {
@@ -241,6 +243,41 @@ public partial class MainWindow : Window
             Mouse.OverrideCursor = null;
             Log.Error(ex, "Ekspor");
             Pesan.Galat("Ekspor Excel gagal.", ex);
+        }
+    }
+
+    void EksporSiskeudes_Click(object sender, RoutedEventArgs e)
+    {
+        if (S.Data == null || S.SkenarioAktif == null) return;
+        AkhiriIsian();
+        S.SimpanSegera();
+        var pilihan = new List<PilihanKode> { new("", "–", "Tanpa pembanding (satu kolom anggaran)") };
+        pilihan.AddRange(S.SemuaSkenario.Where(s => !ReferenceEquals(s, S.SkenarioAktif))
+            .Select(s => new PilihanKode(s.Id, s.Tahun.ToString(), $"Semula = {s.Nama}{(s.IsFinal ? " [POSTING]" : "")}")));
+        var p = pilihan.Count == 1 ? pilihan[0] : DialogPilih.Tampil(this, "Format perubahan? Pilih skenario SEMULA (Menjadi = skenario aktif)", pilihan);
+        if (p == null) return;
+        var semula = p.Nilai == "" ? null : S.SemuaSkenario.First(s => s.Id == p.Nilai);
+        var dSemula = semula == null ? null : S.MuatDataSkenarioLain(semula);
+        var dlg = new SaveFileDialog
+        {
+            Filter = "File Excel (*.xlsx)|*.xlsx",
+            FileName = UiBantu.NamaFileAman($"{(semula == null ? "RAB" : "Perubahan RAB")} {S.Desa.NamaDesa} {S.SkenarioAktif.Tahun} - {S.SkenarioAktif.Nama}") + ".xlsx",
+            InitialDirectory = Folder.DokumenDefault,
+            OverwritePrompt = true
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            EksporSiskeudes.Simpan(dlg.FileName, S.Desa, S.SkenarioAktif, S.Data, semula, dSemula);
+            Mouse.OverrideCursor = null;
+            if (Pesan.Tanya("File Excel format Siskeudes berhasil dibuat:\n" + dlg.FileName + "\n\nBuka sekarang?")) UiBantu.BukaDenganWindows(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            Mouse.OverrideCursor = null;
+            Log.Error(ex, "Ekspor Siskeudes");
+            Pesan.Galat("Ekspor gagal. Jika file itu sedang dibuka di Excel, tutup dulu lalu coba lagi.", ex);
         }
     }
 

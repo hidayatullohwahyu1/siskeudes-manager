@@ -16,7 +16,10 @@ public static class Laporan
     public const string Rpjm = "RPJMDes";
     public const string Rkp = "RKPDes";
     public const string Rak = "Rencana Anggaran Kas (RAK)";
-    public static readonly string[] Jenis = { Ringkasan, Rpjm, Rkp, Pendapatan, Rab, Pembiayaan, Rak, Perubahan, SiapInput };
+    public const string Lampiran1a = "Lampiran 1a – APBDes per Bidang";
+    public const string Lampiran1b = "Lampiran 1b – APBDes per Jenis Belanja";
+    public const string Lampiran1c = "Lampiran 1c – Penjabaran APBDes";
+    public static readonly string[] Jenis = { Ringkasan, Lampiran1a, Lampiran1b, Lampiran1c, Rpjm, Rkp, Pendapatan, Rab, Pembiayaan, Rak, Perubahan, SiapInput };
 
     static readonly Brush Garis = new SolidColorBrush(Color.FromRgb(0x88, 0x92, 0xA0));
     static readonly Brush LatarKepala = new SolidColorBrush(Color.FromRgb(0xE3, 0xE9, 0xF1));
@@ -44,6 +47,13 @@ public static class Laporan
             IsOptimalParagraphEnabled = true,
             IsHyphenationEnabled = false,
         };
+        if (jenis is Lampiran1a or Lampiran1b or Lampiran1c)
+        {
+            KopLampiran(doc, jenis, desa, info, data);
+            IsiLampiran(doc, jenis, data, hasil);
+            TandaTanganKades(doc, desa);
+            return doc;
+        }
         Kop(doc, jenis, desa, info);
         switch (jenis)
         {
@@ -262,6 +272,122 @@ public static class Laporan
         p.Inlines.Add(new LineBreak());
         p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(nama) ? "( ................................ )" : nama) { FontWeight = FontWeights.SemiBold, TextDecorations = TextDecorations.Underline });
         return new TableCell(p);
+    }
+
+    // ------------------------------------------------------------ Lampiran Perdes / Perkades (format Permendagri 20/2018)
+
+    static void KopLampiran(FlowDocument doc, string jenis, DataDesa desa, SkenarioInfo info, DataSkenario d)
+    {
+        var nama = string.IsNullOrWhiteSpace(desa.NamaDesa) ? "................" : desa.NamaDesa.ToUpperInvariant();
+        bool penjabaran = jenis == Lampiran1c;
+        var nomor = penjabaran ? d.NomorPerkades : d.NomorPerdes;
+        var kanan = new Paragraph { TextAlignment = TextAlignment.Left, Margin = new Thickness(330, 0, 0, 12), FontSize = 11.5 };
+        kanan.Inlines.Add(new Run(penjabaran ? "LAMPIRAN" : jenis == Lampiran1a ? "LAMPIRAN I.a" : "LAMPIRAN I.b") { FontWeight = FontWeights.SemiBold });
+        kanan.Inlines.Add(new LineBreak());
+        kanan.Inlines.Add(new Run(penjabaran ? $"PERATURAN KEPALA DESA {nama}" : $"PERATURAN DESA {nama}"));
+        kanan.Inlines.Add(new LineBreak());
+        kanan.Inlines.Add(new Run($"NOMOR {(string.IsNullOrWhiteSpace(nomor) ? ".... TAHUN ....." : nomor.ToUpperInvariant())}"));
+        kanan.Inlines.Add(new LineBreak());
+        kanan.Inlines.Add(new Run(penjabaran ? $"TENTANG PENJABARAN ANGGARAN PENDAPATAN DAN BELANJA DESA TAHUN ANGGARAN {info.Tahun}"
+                                             : $"TENTANG ANGGARAN PENDAPATAN DAN BELANJA DESA TAHUN ANGGARAN {info.Tahun}"));
+        doc.Blocks.Add(kanan);
+
+        var p = new Paragraph { TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 10) };
+        p.Inlines.Add(new Run(penjabaran ? "PENJABARAN ANGGARAN PENDAPATAN DAN BELANJA DESA" : "ANGGARAN PENDAPATAN DAN BELANJA DESA") { FontSize = 14, FontWeight = FontWeights.Bold });
+        p.Inlines.Add(new LineBreak());
+        p.Inlines.Add(new Run($"PEMERINTAH DESA {nama}") { FontSize = 13, FontWeight = FontWeights.SemiBold });
+        p.Inlines.Add(new LineBreak());
+        p.Inlines.Add(new Run($"TAHUN ANGGARAN {info.Tahun}") { FontSize = 13, FontWeight = FontWeights.SemiBold });
+        doc.Blocks.Add(p);
+        var c = new Paragraph(new Run($"Disusun dengan Rancang APBDes dari skenario \"{info.Nama}\" ({(info.IsFinal ? "POSTING" : "DRAFT")}). Cocokkan dengan cetakan Siskeudes sebelum ditandatangani."))
+        { FontSize = 10.5, FontStyle = FontStyles.Italic, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
+        doc.Blocks.Add(c);
+    }
+
+    static void IsiLampiran(FlowDocument doc, string jenis, DataSkenario d, HasilHitung h)
+    {
+        bool penjabaran = jenis == Lampiran1c;
+        var t = penjabaran
+            ? new Tabel(new double[] { 1.5, 5, 2, 1.2 }, new[] { "KODE REKENING", "URAIAN", "ANGGARAN (Rp)", "SUMBER DANA" }, new[] { false, false, true, false })
+            : new Tabel(new double[] { 1.5, 5.4, 2.2, 1.4 }, new[] { "KODE REKENING", "URAIAN", "ANGGARAN (Rp)", "KETERANGAN" }, new[] { false, false, true, false });
+        static string Sd(IEnumerable<string> sd) => string.Join(", ", sd.Where(s => s != "").Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s));
+
+        void PerRekening(IEnumerable<RincianAnggaran> items, int tingkatMaks)
+        {
+            var list = items.ToList();
+            var kode = list.SelectMany(r =>
+            {
+                var seg = r.KodeRekening.Split('.');
+                return Enumerable.Range(2, Math.Max(0, Math.Min(tingkatMaks, seg.Length) - 1)).Select(n => string.Join('.', seg.Take(n)));
+            }).Distinct().OrderBy(k => k, KodeComparer.Instance);
+            foreach (var k in kode)
+            {
+                var isi = list.Where(r => Batas.Cocok(r.KodeRekening, k)).ToList();
+                var seg = k.Split('.').Length;
+                var baris = new[] { KodeRek(k), new string(' ', (seg - 2) * 3) + Lookup.NamaRekening(k), N0(isi.Sum(r => r.Jumlah)), penjabaran ? Sd(isi.Select(r => r.SumberDana)) : "" };
+                if (seg == 2) t.Tebal(baris); else t.Tambah(baris);
+            }
+        }
+
+        // PENDAPATAN
+        t.Tebal("4.", "PENDAPATAN", "", "");
+        PerRekening(d.Pendapatan, penjabaran ? 4 : 3);
+        t.Tebal("", "JUMLAH PENDAPATAN", N0(h.TotalPendapatan), "");
+
+        // BELANJA
+        t.Tebal("5.", "BELANJA", "", "");
+        var belanja = Kalkulasi.RincianBelanja(d).ToList();
+        if (jenis == Lampiran1b)
+        {
+            var semu = belanja.Select(x => { var r = x.R.Salin(); r.SumberDana = x.Sd; return r; });
+            PerRekening(semu, 3);
+        }
+        else
+        {
+            foreach (var bid in belanja.GroupBy(x => x.K.KodeSubBidang.Split('.')[0]).OrderBy(g => g.Key, KodeComparer.Instance))
+            {
+                t.Tebal(bid.Key + ".", Lookup.NamaBidang(bid.Key).ToUpperInvariant(), N0(bid.Sum(x => x.R.Jumlah)), penjabaran ? Sd(bid.Select(x => x.Sd)) : "");
+                foreach (var sub in bid.GroupBy(x => x.K.KodeSubBidang).OrderBy(g => g.Key, KodeComparer.Instance))
+                {
+                    t.Tambah(sub.Key + ".", "   " + Lookup.NamaSubBidang(sub.Key), N0(sub.Sum(x => x.R.Jumlah)), penjabaran ? Sd(sub.Select(x => x.Sd)) : "");
+                    if (!penjabaran) continue;
+                    foreach (var keg in sub.GroupBy(x => x.K).OrderBy(g => g.Key.Kode, KodeComparer.Instance))
+                    {
+                        t.Tambah(keg.Key.Kode + ".", "      " + keg.Key.Nama, N0(keg.Sum(x => x.R.Jumlah)), Sd(keg.Select(x => x.Sd)));
+                        foreach (var obj in keg.GroupBy(x => string.Join('.', x.R.KodeRekening.Split('.').Take(3))).OrderBy(g => g.Key, KodeComparer.Instance))
+                        {
+                            t.Tambah(KodeRek(obj.Key), "         " + Lookup.NamaRekening(obj.Key), N0(obj.Sum(x => x.R.Jumlah)), Sd(obj.Select(x => x.Sd)));
+                            foreach (var rek in obj.GroupBy(x => x.R.KodeRekening).OrderBy(g => g.Key, KodeComparer.Instance))
+                                t.Tambah(KodeRek(rek.Key), "            " + Lookup.NamaRekening(rek.Key), N0(rek.Sum(x => x.R.Jumlah)), Sd(rek.Select(x => x.Sd)));
+                        }
+                    }
+                }
+            }
+        }
+        t.Tebal("", "JUMLAH BELANJA", N0(h.TotalBelanja), "");
+        t.Tebal("", h.Surplus >= 0 ? "SURPLUS" : "(DEFISIT)", h.Surplus >= 0 ? N0(h.Surplus) : $"({N0(-h.Surplus)})", "");
+
+        // PEMBIAYAAN
+        t.Tebal("6.", "PEMBIAYAAN", "", "");
+        PerRekening(d.PenerimaanPembiayaan, penjabaran ? 4 : 3);
+        t.Tebal("", "JUMLAH PENERIMAAN PEMBIAYAAN", N0(h.PenerimaanPembiayaan), "");
+        PerRekening(d.PengeluaranPembiayaan, penjabaran ? 4 : 3);
+        t.Tebal("", "JUMLAH PENGELUARAN PEMBIAYAAN", N0(h.PengeluaranPembiayaan), "");
+        t.Tebal("", "PEMBIAYAAN NETTO", N0(h.PembiayaanNetto), "");
+        t.Tebal("", "SISA LEBIH/(KURANG) PEMBIAYAAN ANGGARAN TAHUN BERJALAN", h.SisaAnggaran >= 0 ? N0(h.SisaAnggaran) : $"({N0(-h.SisaAnggaran)})", "");
+        doc.Blocks.Add(t.T);
+    }
+
+    static void TandaTanganKades(FlowDocument doc, DataDesa desa)
+    {
+        var tempat = string.IsNullOrWhiteSpace(desa.TempatTtd) ? desa.NamaDesa : desa.TempatTtd;
+        var p = new Paragraph { Margin = new Thickness(330, 24, 0, 0), TextAlignment = TextAlignment.Center, KeepTogether = true };
+        p.Inlines.Add(new Run($"{tempat}, ............................"));
+        p.Inlines.Add(new LineBreak());
+        p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(desa.NamaDesa) ? "KEPALA DESA" : $"KEPALA DESA {desa.NamaDesa.ToUpperInvariant()}"));
+        p.Inlines.Add(new LineBreak()); p.Inlines.Add(new LineBreak()); p.Inlines.Add(new LineBreak()); p.Inlines.Add(new LineBreak());
+        p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(desa.KepalaDesa) ? "( ................................ )" : desa.KepalaDesa.ToUpperInvariant()) { FontWeight = FontWeights.SemiBold });
+        doc.Blocks.Add(p);
     }
 
     // ------------------------------------------------------------ Perencanaan & Anggaran Kas
