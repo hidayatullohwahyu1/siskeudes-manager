@@ -102,6 +102,14 @@ public static class UjiOtomatis
         finally
         {
             try { S.TutupFile(); } catch { /* abaikan */ }
+            Hasil.AppendLine(AuditTampilan.Ringkasan());
+            var ukuranLain = AuditTampilan.Ukuran.Keys.Where(u => u is not (12 or 13 or 15 or 18)).ToList();
+            Cek(ukuranLain.Count == 0, "Ukuran font hanya 12/13/15/18" + (ukuranLain.Count > 0 ? " — ditemukan: " + string.Join(", ", ukuranLain) : ""));
+            Cek(AuditTampilan.Jenis.Count == 1, "Satu jenis font");
+            Cek(AuditTampilan.KontrasRendah.Count == 0, "Kontras warna memenuhi WCAG");
+            Cek(AuditTampilan.Terpotong.Count == 0, "Tidak ada teks terpotong");
+            Cek(AuditTampilan.TanpaAksi.Count == 0, "Semua tombol & menu punya aksi");
+            Cek(AuditTampilan.GalatKlik.Count == 0, "Klik semua tombol tanpa galat");
             Hasil.AppendLine(_gagal == 0 ? "SEMUA UJI LULUS" : $"{_gagal} UJI GAGAL");
             File.WriteAllText(Path.Combine(folder, "hasil.txt"), Hasil.ToString());
         }
@@ -177,12 +185,14 @@ public static class UjiOtomatis
                 Tunggu();
                 if (h is IsianAnggaranView iv)
                 {
-                    foreach (var (bagian, tab) in new[] { (0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (2, 0), (2, 1), (2, 2), (2, 3), (3, 1) })
+                    foreach (var (bagian, tab) in new[] { (0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 0), (3, 1), (4, 0) })
                     {
                         iv.Buka(bagian, tab);
                         Tunggu();
                         Render(w, Path.Combine(folder, $"{nama}_isian_{bagian}{tab}.png"));
                         CekTerpotong(w, $"{nama}/isian {bagian}.{tab}");
+                        AuditTampilan.Periksa(w, $"{nama}/isian {bagian}.{tab}");
+                        if (nama == "1366x768") AuditTampilan.KlikSemua(w, $"isian {bagian}.{tab}");
                     }
                     // Alur Ubah → Simpan pada kegiatan dan rincian RAB tanpa mengubah nilai
                     iv.Buka(0, 2); Tunggu();
@@ -190,7 +200,7 @@ public static class UjiOtomatis
                     iv.HalamanAktif!.Ubah(); Tunggu();
                     Render(w, Path.Combine(folder, $"{nama}_isian_mengubah.png"));
                     Cek(iv.HalamanAktif!.Simpan(), $"{nama}: Ubah → Simpan kegiatan");
-                    iv.Buka(2, 3); Tunggu();
+                    iv.Buka(2, 4); Tunggu();
                     iv.HalamanAktif!.Ubah(); Tunggu();
                     Cek(iv.HalamanAktif!.Simpan(), $"{nama}: Ubah → Simpan rincian RAB");
                     S.Hitung();
@@ -203,6 +213,8 @@ public static class UjiOtomatis
                 }
                 Render(w, Path.Combine(folder, $"{nama}_{kunci}.png"));
                 CekTerpotong(w, $"{nama}/{kunci}");
+                AuditTampilan.Periksa(w, $"{nama}/{kunci}");
+                if (nama == "1366x768") AuditTampilan.KlikSemua(w, kunci);
                 if (h is RingkasanView rv)
                 {
                     rv.Gulir.ScrollToVerticalOffset(380);
@@ -216,6 +228,7 @@ public static class UjiOtomatis
                     dv.BukaTab(1); Tunggu();
                     Render(w, Path.Combine(folder, $"{nama}_{kunci}_pka.png"));
                     CekTerpotong(w, $"{nama}/{kunci}-pka");
+                    AuditTampilan.Periksa(w, $"{nama}/{kunci}-pka");
                     dv.BukaTab(0);
                 }
             }

@@ -235,6 +235,8 @@ public static class Kalkulasi
             tambah("Perhatian", $"{tempat}: kode rekening {r.KodeRekening} untuk \"{u}\" bukan kelompok {awalanRek}.");
         if (r.Jumlah == 0)
             tambah("Perhatian", $"{tempat}: \"{u}\" bernilai Rp 0.");
+        if (r.Uraian.Length > 50)
+            tambah("Perhatian", $"{tempat}: uraian \"{u}\" lebih dari 50 karakter (batas isian Siskeudes).");
         if (!string.IsNullOrWhiteSpace(r.SumberDana) && !Lookup.AdaSumberDana(r.SumberDana))
             tambah("Perhatian", $"{tempat}: sumber dana {r.SumberDana} tidak ada di referensi.");
     }

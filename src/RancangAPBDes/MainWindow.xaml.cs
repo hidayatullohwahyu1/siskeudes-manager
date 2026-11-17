@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         TerapkanZoom(S.Pengaturan.Zoom);
+        IsianAnggaranView.BukaLaporan = j => BukaPratinjau(j);
         S.HasilBerubah += PerbaruiStatus;
         S.PropertyChanged += (_, e) =>
         {
@@ -75,19 +76,20 @@ public partial class MainWindow : Window
         if (Isi.Content is ParameterView or DataDesaView) S.PerbaruiDaftarReferensi();
         if (!_halaman.TryGetValue(kunci, out var h))
         {
+            Action tutup = () => Buka("beranda");
             h = kunci switch
             {
-                "beranda" => new RingkasanView(),
-                "isian" => new IsianAnggaranView(),
-                "banding" => new BandingView(),
-                "desa" => new DataDesaView(),
-                "parameter" => new ParameterView(),
-                _ => new BantuanView(),
+                "beranda" => new BingkaiForm("Ringkasan APBDes", new RingkasanView(), null),
+                "isian" => new BingkaiForm("Isian Data Anggaran", new IsianAnggaranView(), tutup),
+                "banding" => new BingkaiForm("Perbandingan Anggaran Semula – Menjadi", new BandingView(), tutup),
+                "desa" => new BingkaiForm("Data Umum Desa", new DataDesaView(), tutup),
+                "parameter" => new BingkaiForm("Parameter", new ParameterView(), tutup),
+                _ => new BingkaiForm("Petunjuk Penggunaan", new BantuanView(), tutup),
             };
             _halaman[kunci] = h;
         }
         Isi.Content = h;
-        return h;
+        return ((BingkaiForm)h).Isi;
     }
 
     /// <summary>Batalkan isian yang belum disimpan sebelum pindah halaman/skenario.</summary>
@@ -226,13 +228,16 @@ public partial class MainWindow : Window
         }
     }
 
-    void Cetak_Click(object sender, RoutedEventArgs e)
+    void Cetak_Click(object sender, RoutedEventArgs e) => BukaPratinjau(null);
+
+    void BukaPratinjau(string? jenis)
     {
         if (S.Data == null || S.SkenarioAktif == null) return;
         AkhiriIsian();
         S.SimpanSegera();
         S.Hitung();
-        new PratinjauWindow { Owner = this }.ShowDialog();
+        if (AppState.ModeUji) return;
+        new PratinjauWindow(jenis) { Owner = this }.ShowDialog();
     }
 
     // ------------------------------------------------------------ file

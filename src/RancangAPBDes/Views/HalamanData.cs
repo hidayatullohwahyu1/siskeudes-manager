@@ -81,18 +81,26 @@ public class HalamanData : UserControl
     public Action? AksiHapus { get; set; }
     public Action<object>? SetelahSimpan { get; set; }
     public string LabelTambah { get; set; } = "Tambah";
+    /// <summary>Daftar hanya untuk dilihat/dipilih: tombol Tambah/Ubah/Hapus disembunyikan.</summary>
+    public bool HanyaBaca { get; set; }
+    /// <summary>Satu data saja (mis. Data Umum Desa): tabel disembunyikan, hanya Ubah/Batal/Simpan.</summary>
+    public bool TanpaTabel { get; set; }
+    public Action? AksiCetak { get; set; }
 
     public event Action<object?>? PilihanBerubah;
 
     // ---------------- komponen ----------------
     readonly DataGrid _tabel = new() { IsReadOnly = true };
-    readonly TextBlock _konteks = new() { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White };
+    readonly TextBlock _konteks = new() { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Foreground = (Brush)Application.Current.FindResource("TeksUtama") };
     readonly Border _barKonteks;
     readonly TextBlock _kosong = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(12), Foreground = (Brush)Application.Current.FindResource("WarnaRedup"), VerticalAlignment = VerticalAlignment.Top };
     readonly Grid _form = new() { Margin = new Thickness(10, 8, 10, 2) };
     readonly Border _bingkaiForm;
     readonly Border _bingkaiBawah;
-    readonly WrapPanel _tombol = new() { Margin = new Thickness(8, 6, 8, 2) };
+    readonly WrapPanel _tombol = new() { Margin = new Thickness(4, 6, 6, 2), HorizontalAlignment = HorizontalAlignment.Right };
+    readonly WrapPanel _kiri = new() { Margin = new Thickness(8, 6, 4, 2) };
+    readonly Grid _akar = new();
+    Button? _bCetak;
     readonly TextBlock _jumlah = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 4), Foreground = (Brush)Application.Current.FindResource("WarnaRedup") };
     readonly TextBlock _mode = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 4), FontWeight = FontWeights.SemiBold };
     Button _bTambah = null!, _bUbah = null!, _bHapus = null!, _bBatal = null!, _bSimpan = null!;
@@ -107,13 +115,17 @@ public class HalamanData : UserControl
 
     public HalamanData()
     {
-        var akar = new Grid();
+        var akar = _akar;
         akar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         akar.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 80 });
         akar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         akar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        _barKonteks = new Border { Background = (Brush)Application.Current.FindResource("Primer"), Padding = new Thickness(10, 5, 10, 5), Child = _konteks };
+        _barKonteks = new Border
+        {
+            Background = (Brush)Application.Current.FindResource("PrimerMuda"), BorderBrush = (Brush)Application.Current.FindResource("Garis"),
+            BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(10, 5, 10, 5), Child = _konteks
+        };
         akar.Children.Add(_barKonteks);
 
         var tengah = new Grid();
@@ -131,10 +143,10 @@ public class HalamanData : UserControl
         Grid.SetRow(_bingkaiForm, 2);
         akar.Children.Add(_bingkaiForm);
 
-        var bawah = new DockPanel { Background = (Brush)Application.Current.FindResource("PrimerMuda") };
-        DockPanel.SetDock(_jumlah, Dock.Right);
-        bawah.Children.Add(_jumlah);
+        var bawah = new DockPanel { Background = (Brush)Application.Current.FindResource("LatarPanel") };
+        DockPanel.SetDock(_tombol, Dock.Right);
         bawah.Children.Add(_tombol);
+        bawah.Children.Add(_kiri);
         _bingkaiBawah = new Border { BorderBrush = (Brush)Application.Current.FindResource("Garis"), BorderThickness = new Thickness(1, 0, 1, 1), Child = bawah };
         Grid.SetRow(_bingkaiBawah, 3);
         akar.Children.Add(_bingkaiBawah);
@@ -185,17 +197,10 @@ public class HalamanData : UserControl
             else if (k.Angka) b.StringFormat = "#,##0.##";
             var gaya = new Style(typeof(TextBlock));
             gaya.Setters.Add(new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center));
-            gaya.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis));
+            // Teks tidak pernah dipotong: kolom teks dibungkus ke baris berikutnya
             if (k.Angka) gaya.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Right));
+            else gaya.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
             if (k.Tebal) gaya.Setters.Add(new Setter(TextBlock.FontWeightProperty, FontWeights.SemiBold));
-            if (k.DuaBaris)
-            {
-                gaya.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
-                gaya.Setters.Add(new Setter(TextBlock.MaxHeightProperty, 36.0));
-            }
-            var tip = new Binding(k.Path) { Mode = BindingMode.OneWay };
-            if (b.StringFormat != null) tip.StringFormat = b.StringFormat;
-            gaya.Setters.Add(new Setter(ToolTipProperty, tip));
             var kol = new DataGridTextColumn
             {
                 Header = k.Judul,
@@ -219,19 +224,32 @@ public class HalamanData : UserControl
         _bBatal = Tombol("Batal", Batal, "Esc");
         _bSimpan = Tombol("Simpan", () => Simpan(), "Ctrl+S");
         _bSimpan.Style = (Style)Application.Current.FindResource("TombolUtama");
-        _tombol.Children.Add(_bTambah);
-        _tombol.Children.Add(_bUbah);
-        _tombol.Children.Add(_bHapus);
-        if (!TanpaForm)
+        foreach (var (b, _, _) in _tombolTambahan) _kiri.Children.Add(b);
+        _kiri.Children.Add(_mode);
+        _kiri.Children.Add(_jumlah);
+        if (!HanyaBaca)
         {
-            _tombol.Children.Add(_bBatal);
-            _tombol.Children.Add(_bSimpan);
+            if (!TanpaTabel) _tombol.Children.Add(_bTambah);
+            if (AksiUbah != null || !TanpaForm) _tombol.Children.Add(_bUbah);
+            if (!TanpaTabel) _tombol.Children.Add(_bHapus);
+            if (!TanpaForm)
+            {
+                _tombol.Children.Add(_bBatal);
+                _tombol.Children.Add(_bSimpan);
+            }
         }
-        foreach (var (b, _, _) in _tombolTambahan) _tombol.Children.Add(b);
-        _tombol.Children.Add(_mode);
-        if (TanpaForm && AksiTambah == null && BuatBaru == null)
+        if (AksiCetak != null)
         {
-            _bTambah.Visibility = _bUbah.Visibility = _bHapus.Visibility = Visibility.Collapsed;
+            _bCetak = Tombol("Cetak", AksiCetak, "pratinjau laporan");
+            _tombol.Children.Add(_bCetak);
+        }
+        foreach (var b in new[] { _bTambah, _bUbah, _bHapus, _bBatal, _bSimpan }) ToolTipService.SetShowOnDisabled(b, true);
+        if (TanpaTabel)
+        {
+            _akar.RowDefinitions[1].Height = new GridLength(0);
+            _akar.RowDefinitions[1].MinHeight = 0;
+            _akar.RowDefinitions[2].Height = new GridLength(1, GridUnitType.Star);
+            _jumlah.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -260,7 +278,7 @@ public class HalamanData : UserControl
     {
         var label = new TextBlock
         {
-            Text = isi.Label + (isi.Wajib ? " *" : ""),
+            Text = isi.Label + (isi.Wajib ? " *" : "") + (isi.MaksKarakter > 0 ? $" (maks. {isi.MaksKarakter})" : ""),
             Style = (Style)Application.Current.FindResource("Label"),
             MaxWidth = 170,
             ToolTip = isi.Petunjuk
@@ -353,7 +371,7 @@ public class HalamanData : UserControl
             }
             default:
             {
-                var tb = new TextBox();
+                var tb = new TextBox { TextWrapping = TextWrapping.Wrap, MaxHeight = 96 };
                 if (isi.MaksKarakter > 0) tb.MaxLength = isi.MaksKarakter;
                 tb.SetBinding(TextBox.TextProperty, B(t: UpdateSourceTrigger.Explicit));
                 kontrol.Add(tb); editor = tb; break;
@@ -399,6 +417,7 @@ public class HalamanData : UserControl
     {
         var h = ActualHeight;
         if (h <= 0) return;
+        if (TanpaTabel) { _bingkaiForm.MaxHeight = double.PositiveInfinity; return; }
         var sisa = h - _barKonteks.ActualHeight - _bingkaiBawah.ActualHeight - 80 - 2;
         var maks = Math.Max(56, Math.Min(sisa, h * 0.5));
         if (Math.Abs(_bingkaiForm.MaxHeight - maks) > 0.5) _bingkaiForm.MaxHeight = maks;
@@ -512,12 +531,15 @@ public class HalamanData : UserControl
         _bHapus.IsEnabled = !SedangMengisi && boleh && ada;
         _bBatal.IsEnabled = SedangMengisi;
         _bSimpan.IsEnabled = SedangMengisi;
+        var alasan = AppState.Instance.SkenarioFinal && !boleh ? "Skenario sudah diposting (terkunci). Batalkan posting untuk mengubah." : null;
+        foreach (var (b, teks) in new[] { (_bTambah, "Tambah (Insert)"), (_bUbah, "Ubah (F2 / klik dua kali)"), (_bHapus, "Hapus (Delete)") })
+            b.ToolTip = alasan ?? teks;
         foreach (var (b, butuhUbah, butuhPilih) in _tombolTambahan)
             b.IsEnabled = !SedangMengisi && (!butuhUbah || boleh) && (!butuhPilih || ada);
         _tabel.IsEnabled = !SedangMengisi;
         _mode.Text = SedangMengisi ? (_baru ? "● Menambah data baru" : "● Mengubah data") : "";
-        _mode.Foreground = (Brush)Application.Current.FindResource("Primer");
-        _bingkaiForm.Background = SedangMengisi ? new SolidColorBrush(Color.FromRgb(0xFF, 0xFD, 0xF2)) : Brushes.White;
+        _mode.Foreground = (Brush)Application.Current.FindResource("PrimerGelap");
+        _bingkaiForm.Background = SedangMengisi ? (Brush)Application.Current.FindResource("KuningMuda") : Brushes.White;
     }
 
     // ================================================================ aksi

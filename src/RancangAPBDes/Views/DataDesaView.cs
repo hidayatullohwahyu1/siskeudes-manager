@@ -1,36 +1,50 @@
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Media;
 using RancangAPBDes.Core;
 
 namespace RancangAPBDes.Views;
 
-/// <summary>Data Entri › Data Umum Desa: identitas desa dan Pelaksana Kegiatan Anggaran (PKA).</summary>
+/// <summary>Data Entri › Data Umum Desa: identitas desa dan Pelaksana Kegiatan (seperti Siskeudes).</summary>
 public class DataDesaView : UserControl
 {
     readonly AppState S = AppState.Instance;
-    readonly TabControl _tab = new() { Padding = new Thickness(0), BorderThickness = new Thickness(0), Margin = new Thickness(0, 6, 0, 0) };
-    readonly HalamanData _pka;
+    readonly ListBox _nav = Gaya.Nav();
+    readonly ContentControl _isi = new() { Focusable = false };
+    readonly HalamanData _umum, _pka;
 
     public DataDesaView()
     {
-        var akar = new DockPanel();
-        var kepala = new Border { Background = (Brush)Application.Current.FindResource("LatarKepalaForm"), Padding = new Thickness(12, 6, 12, 6) };
-        kepala.Child = new TextBlock { Text = "DATA UMUM DESA", Foreground = Brushes.White, FontSize = 15, FontWeight = FontWeights.SemiBold };
-        DockPanel.SetDock(kepala, Dock.Top);
-        akar.Children.Add(kepala);
-        akar.Children.Add(_tab);
-        Content = akar;
-
-        _tab.Items.Add(new TabItem { Header = "Data Umum", Content = BuatForm() });
+        _umum = new HalamanData
+        {
+            JudulData = "Data Umum Desa",
+            TanpaTabel = true,
+            BolehUbah = () => true,
+            Konteks = () => "tekan Ubah untuk mengisi, lalu Simpan. Berlaku untuk semua skenario di file ini.",
+            Tampilan = () => new List<DataDesa> { S.Desa },
+            SetelahSimpan = _ => S.PerbaruiDaftarReferensi()
+        };
+        _umum.Isian.AddRange(new[]
+        {
+            new Isian { Label = "Nama Desa", Path = "NamaDesa", Wajib = true, Penuh = true, Petunjuk = "Contoh: Merden" },
+            new Isian { Label = "Kode Desa", Path = "KodeDesa", Petunjuk = "Seperti di Siskeudes, contoh 04.2002 (tidak wajib)" },
+            new Isian { Label = "Kecamatan", Path = "Kecamatan" },
+            new Isian { Label = "Kabupaten", Path = "Kabupaten" },
+            new Isian { Label = "Tempat Penandatanganan", Path = "TempatTtd", Petunjuk = "Muncul di laporan cetak" },
+            new Isian { Label = "Nama Kepala Desa", Path = "KepalaDesa", Penuh = true },
+            new Isian { Label = "Nama Sekretaris Desa", Path = "Sekdes", Penuh = true },
+            new Isian { Label = "Nama Kaur Keuangan", Path = "KaurKeuangan", Penuh = true },
+        });
 
         _pka = new HalamanData
         {
-            JudulData = "Pelaksana Kegiatan Anggaran (PKA)",
-            Konteks = () => "nama-nama ini menjadi pilihan Pelaksana di Isian Data Anggaran",
+            JudulData = "Pelaksana Kegiatan",
+            Konteks = () => "nama-nama ini menjadi pilihan Nama Pelaksana di Isian Data Anggaran",
             BolehUbah = () => true,
             Daftar = () => S.Desa.Perangkat,
+            Tampilan = () =>
+            {
+                var list = S.Desa.Perangkat.ToList();
+                return list;
+            },
             BuatBaru = () => new Perangkat(),
             Kunci = o => ((Perangkat)o).Nama + "|" + ((Perangkat)o).Jabatan,
             PesanHapus = o => $"Hapus {((Perangkat)o).Nama} dari daftar pelaksana?",
@@ -40,60 +54,25 @@ public class DataDesaView : UserControl
         _pka.Kolom.Add(new Kolom { Judul = "Jabatan", Path = "Jabatan", MinLebar = 200 });
         _pka.Isian.Add(new Isian { Label = "Nama", Path = "Nama", Wajib = true });
         _pka.Isian.Add(new Isian { Label = "Jabatan", Path = "Jabatan", Wajib = true });
-        _tab.Items.Add(new TabItem { Header = "Pelaksana Kegiatan", Content = _pka });
+
+        _nav.Items.Add(Gaya.ItemNav("Data Umum"));
+        _nav.Items.Add(Gaya.ItemNav("Pelaksana Kegiatan"));
+        _nav.SelectionChanged += (_, _) =>
+        {
+            var h = _nav.SelectedIndex == 1 ? _pka : _umum;
+            _isi.Content = h;
+            h.Segarkan();
+        };
+        _nav.SelectedIndex = 0;
+        Content = Gaya.DenganNav(_nav, _isi);
 
         Unloaded += (_, _) =>
         {
+            if (_umum.SedangMengisi) _umum.Batal();
             if (_pka.SedangMengisi) _pka.Batal();
             S.PerbaruiPelaksana();
         };
     }
 
-    public void BukaTab(int i) => _tab.SelectedIndex = i;
-
-    FrameworkElement BuatForm()
-    {
-        var g = new Grid { Margin = new Thickness(14, 12, 14, 12), MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Stretch };
-        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 220 });
-        var isian = new (string label, string path, string? tip)[]
-        {
-            ("Nama Desa", "NamaDesa", "Contoh: Merden"),
-            ("Kode Desa", "KodeDesa", "Seperti di Siskeudes, contoh 04.2002 (tidak wajib)"),
-            ("Kecamatan", "Kecamatan", null),
-            ("Kabupaten", "Kabupaten", null),
-            ("Nama Kepala Desa", "KepalaDesa", null),
-            ("Nama Sekretaris Desa", "Sekdes", null),
-            ("Nama Kaur Keuangan", "KaurKeuangan", null),
-            ("Tempat Penandatanganan", "TempatTtd", "Muncul di laporan cetak"),
-        };
-        for (int i = 0; i < isian.Length; i++)
-        {
-            g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var (label, path, tip) = isian[i];
-            var l = new TextBlock { Text = label, Style = (Style)Application.Current.FindResource("Label"), MaxWidth = 200 };
-            var tb = new TextBox { ToolTip = tip, Margin = new Thickness(0, 0, 0, 6) };
-            tb.SetBinding(TextBox.TextProperty, new Binding(path) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
-            Grid.SetRow(l, i);
-            Grid.SetRow(tb, i);
-            Grid.SetColumn(tb, 1);
-            g.Children.Add(l);
-            g.Children.Add(tb);
-        }
-        g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var catatan = new TextBlock
-        {
-            Text = "Perubahan tersimpan otomatis. Data ini berlaku untuk semua skenario di file ini.",
-            Style = (Style)Application.Current.FindResource("TeksRedup"), Margin = new Thickness(0, 6, 0, 0)
-        };
-        Grid.SetRow(catatan, isian.Length);
-        Grid.SetColumnSpan(catatan, 2);
-        g.Children.Add(catatan);
-        Loaded += (_, _) => g.DataContext = S.Desa;
-        return new Border
-        {
-            Background = Brushes.White, BorderBrush = (Brush)Application.Current.FindResource("Garis"), BorderThickness = new Thickness(1),
-            Child = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = new Border { Child = g, HorizontalAlignment = HorizontalAlignment.Left, Width = 760, MaxWidth = 760 } }
-        };
-    }
+    public void BukaTab(int i) => _nav.SelectedIndex = i;
 }

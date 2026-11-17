@@ -3,14 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:core="clr-namespace:RancangAPBDes.Core">
     <ScrollViewer x:Name="Luar" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-    <Grid MinHeight="480" Height="{Binding ViewportHeight, ElementName=Luar}">
+    <Grid MinHeight="420" Height="{Binding ViewportHeight, ElementName=Luar}" Margin="12,10,12,10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="Bandingkan Skenario (Semula – Menjadi)" Style="{StaticResource Judul}"/>
+        <TextBlock Text="Bandingkan Skenario (Semula – Menjadi)" Style="{StaticResource Judul}" Visibility="Collapsed"/>
         <TextBlock Grid.Row="1" Style="{StaticResource TeksRedup}" Margin="0,0,0,10"
                    Text="Berguna saat musyawarah untuk melihat apa saja yang berubah antara usulan awal dan hasil kesepakatan. Bertambah/(berkurang) = Menjadi − Semula."/>
         <WrapPanel Grid.Row="2" Margin="0,0,0,8">
@@ -34,7 +34,7 @@
                     <GroupStyle.HeaderTemplate>
                         <DataTemplate>
                             <Border Background="#E8EDF4" Padding="10,6" Margin="0,8,0,0">
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="16" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                             </Border>
                         </DataTemplate>
                     </GroupStyle.HeaderTemplate>

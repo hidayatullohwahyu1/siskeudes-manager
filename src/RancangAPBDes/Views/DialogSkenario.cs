@@ -17,7 +17,7 @@ public class DialogSkenario : Window
     {
         Title = salin ? "Salin skenario" : "Skenario baru";
         FontFamily = (System.Windows.Media.FontFamily)Application.Current.FindResource("FontUtama");
-        FontSize = 15;
+        FontSize = Huruf.Isi;
         SizeToContent = SizeToContent.WidthAndHeight;
         MinWidth = 460;
         MaxWidth = 720;

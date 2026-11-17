@@ -12,7 +12,7 @@ public class DialogInput : Window
     {
         Title = judul;
         FontFamily = (System.Windows.Media.FontFamily)Application.Current.FindResource("FontUtama");
-        FontSize = 15;
+        FontSize = Huruf.Isi;
         SizeToContent = SizeToContent.WidthAndHeight;
         MinWidth = 440;
         MaxWidth = 700;

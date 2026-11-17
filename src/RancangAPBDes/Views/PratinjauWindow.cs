@@ -13,11 +13,11 @@ public class PratinjauWindow : Window
     readonly FlowDocumentReader _pembaca;
     readonly AppState S = AppState.Instance;
 
-    public PratinjauWindow()
+    public PratinjauWindow(string? jenisAwal = null)
     {
         Title = "Pratinjau & Cetak";
         FontFamily = (System.Windows.Media.FontFamily)Application.Current.FindResource("FontUtama");
-        FontSize = 15;
+        FontSize = Huruf.Isi;
         Width = 1100;
         Height = 800;
         MinWidth = 700;
@@ -31,6 +31,7 @@ public class PratinjauWindow : Window
         DockPanel.SetDock(bar, Dock.Top);
         bar.Children.Add(new TextBlock { Text = "Laporan", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 6) });
         _jenis = new ComboBox { MinWidth = 320, Margin = new Thickness(0, 0, 10, 6), ItemsSource = Laporan.Jenis, SelectedIndex = 0 };
+        if (jenisAwal != null && Laporan.Jenis.Contains(jenisAwal)) _jenis.SelectedItem = jenisAwal;
         _jenis.SelectionChanged += (_, _) => Muat();
         bar.Children.Add(_jenis);
         var cetak = new Button { Content = "Cetak…", Style = (Style)Application.Current.FindResource("TombolUtama"), MinWidth = 110 };
@@ -43,7 +44,7 @@ public class PratinjauWindow : Window
         {
             Text = "Untuk menyimpan sebagai PDF, pilih printer \"Microsoft Print to PDF\". Pilih Landscape untuk tabel yang lebar.",
             TextWrapping = TextWrapping.Wrap, MaxWidth = 520, VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.FindResource("TeksRedup"), FontSize = 13, Margin = new Thickness(6, 0, 0, 6)
+            Style = (Style)Application.Current.FindResource("TeksRedup"), FontSize = Huruf.Kecil, Margin = new Thickness(6, 0, 0, 6)
         });
         akar.Children.Add(bar);
 

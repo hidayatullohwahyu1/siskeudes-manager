@@ -111,8 +111,16 @@ public static class Pesan
     static Window? Pemilik =>
         Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? Application.Current?.MainWindow;
 
+    /// <summary>Dalam mode uji pesan tidak ditampilkan tetapi dicatat (galat = uji gagal).</summary>
+    public static readonly List<string> CatatanUji = new();
+
     static MessageBoxResult Tampil(string teks, MessageBoxButton tombol, MessageBoxImage ikon)
     {
+        if (AppState.ModeUji)
+        {
+            CatatanUji.Add($"{ikon}: {teks}");
+            return MessageBoxResult.No;
+        }
         var w = Pemilik;
         return w != null && w.IsLoaded
             ? MessageBox.Show(w, teks, Judul, tombol, ikon)

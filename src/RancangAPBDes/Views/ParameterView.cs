@@ -14,33 +14,19 @@ public class ParameterView : UserControl
     static readonly string[] DaftarDasar = { "Total Belanja", "Pagu Sumber Dana" };
 
     readonly AppState S = AppState.Instance;
-    readonly TabControl _tab = new() { Padding = new Thickness(0), BorderThickness = new Thickness(0) };
+    readonly ListBox _nav = Gaya.Nav();
+    readonly ContentControl _isi = new() { Focusable = false };
     readonly List<HalamanData> _halaman = new();
 
     public ParameterView()
     {
-        var akar = new DockPanel();
-        var kepala = new Border { Background = (Brush)Application.Current.FindResource("LatarKepalaForm"), Padding = new Thickness(12, 6, 12, 6) };
-        kepala.Child = new TextBlock { Text = "PARAMETER", Foreground = Brushes.White, FontSize = 15, FontWeight = FontWeights.SemiBold };
-        DockPanel.SetDock(kepala, Dock.Top);
-        akar.Children.Add(kepala);
-
-        var info = new Border
+        Content = Gaya.DenganNav(_nav, _isi);
+        _nav.SelectionChanged += (_, _) =>
         {
-            Background = (Brush)Application.Current.FindResource("KuningMuda"), BorderBrush = new SolidColorBrush(Color.FromRgb(0xE8, 0xC6, 0x6A)),
-            BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(12, 5, 12, 5),
-            Child = new TextBlock
-            {
-                TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.FindResource("Kuning"),
-                Text = "Parameter berlaku untuk semua skenario di file ini. Kode rekening dan kegiatan bawaan diambil dari APBDes berjalan; " +
-                       "lengkapi sesuai Siskeudes desa Anda, atau impor dari Excel (kolom kode lalu kolom nama)."
-            }
+            if (_nav.SelectedIndex < 0) return;
+            _isi.Content = _halaman[_nav.SelectedIndex];
+            _halaman[_nav.SelectedIndex].Segarkan();
         };
-        DockPanel.SetDock(info, Dock.Top);
-        akar.Children.Add(info);
-        _tab.Margin = new Thickness(0, 6, 0, 0);
-        akar.Children.Add(_tab);
-        Content = akar;
 
         Tambah("Rekening APB Desa", Rekening());
         Tambah("Sumber Dana", Sederhana("Sumber Dana", () => S.Referensi.SumberDana, () => new RefSumberDana(), "Kode", 90, "Nama Sumber Dana", o => ((RefSumberDana)o).Kode, (o, baru) => null));
@@ -50,10 +36,8 @@ public class ParameterView : UserControl
         Tambah("Satuan", Satuan());
         Tambah("Aturan Batas Belanja", Aturan());
 
-        _tab.SelectionChanged += (_, e) =>
-        {
-            if (e.Source == _tab) (( _tab.SelectedItem as TabItem)?.Content as HalamanData)?.Segarkan();
-        };
+        _nav.SelectedIndex = 0;
+
         Unloaded += (_, _) =>
         {
             foreach (var h in _halaman) if (h.SedangMengisi) h.Batal();
@@ -61,14 +45,14 @@ public class ParameterView : UserControl
         };
     }
 
-    public void BukaTab(int i) => _tab.SelectedIndex = i;
+    public void BukaTab(int i) => _nav.SelectedIndex = i;
 
     void Tambah(string judul, HalamanData h)
     {
         h.BolehUbah = () => true;
         h.SetelahSimpan = _ => S.PerbaruiDaftarReferensi();
         _halaman.Add(h);
-        _tab.Items.Add(new TabItem { Header = judul, Content = h });
+        _nav.Items.Add(Gaya.ItemNav(judul));
     }
 
     HalamanData Sederhana(string judul, Func<IList> daftar, Func<object> baru, string labelKode, double lebarKode, string labelNama,
@@ -107,7 +91,7 @@ public class ParameterView : UserControl
             JudulData = "Rekening APB Desa",
             Daftar = () => S.Referensi.Rekening,
             Tampilan = () => S.Referensi.Rekening.OrderBy(r => r.Kode, KodeComparer.Instance).ToList(),
-            Konteks = () => "4 = Pendapatan · 5 = Belanja · 6.1 / 6.2 = Pembiayaan. Rincian anggaran memakai kode 4 tingkat (mis. 5.2.1.01).",
+            Konteks = () => "4 = Pendapatan · 5 = Belanja · 6.1/6.2 = Pembiayaan. Rincian anggaran memakai kode 4 tingkat (mis. 5.2.1.01). Kode bawaan diambil dari APBDes berjalan; lengkapi sesuai Siskeudes desa atau impor dari Excel.",
             BuatBaru = () => new RefRekening(),
             Kunci = o => ((RefRekening)o).Kode,
             Validasi = (o, b) =>

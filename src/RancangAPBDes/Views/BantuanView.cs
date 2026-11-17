@@ -11,7 +11,7 @@ public class BantuanView : UserControl
     public BantuanView()
     {
         var sp = new StackPanel { Margin = new Thickness(16, 12, 16, 16), MaxWidth = 860, HorizontalAlignment = HorizontalAlignment.Left };
-        sp.Children.Add(new TextBlock { Text = "Petunjuk Penggunaan", Style = (Style)Application.Current.FindResource("Judul") });
+
 
         void Bagian(string judul, params string[] butir)
         {
@@ -71,7 +71,7 @@ public class BantuanView : UserControl
             Text = $"Versi {typeof(BantuanView).Assembly.GetName().Version}  ·  Log: {Log.FilePath}",
             Style = (Style)Application.Current.FindResource("TeksRedup"),
             Margin = new Thickness(0, 16, 0, 0),
-            FontSize = 12
+            FontSize = Huruf.Kecil
         });
 
         Content = new Border

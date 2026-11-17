@@ -10,7 +10,9 @@ public static class Laporan
     public const string Ringkasan = "Ringkasan APBDes (bahan musyawarah)";
     public const string Rab = "RAB per Kegiatan";
     public const string SiapInput = "Daftar Siap Input Siskeudes";
-    public static readonly string[] Jenis = { Ringkasan, Rab, SiapInput };
+    public const string Pendapatan = "Rencana Anggaran Pendapatan";
+    public const string Pembiayaan = "Rencana Anggaran Pembiayaan";
+    public static readonly string[] Jenis = { Ringkasan, Pendapatan, Rab, Pembiayaan, SiapInput };
 
     static readonly Brush Garis = new SolidColorBrush(Color.FromRgb(0x88, 0x92, 0xA0));
     static readonly Brush LatarKepala = new SolidColorBrush(Color.FromRgb(0xE3, 0xE9, 0xF1));
@@ -43,6 +45,8 @@ public static class Laporan
         {
             case Rab: IsiRab(doc, desa, data); break;
             case SiapInput: IsiSiapInput(doc, desa, data); break;
+            case Pendapatan: IsiRekening(doc, "PENDAPATAN", data.Pendapatan, null, null); TandaTangan(doc, desa); break;
+            case Pembiayaan: IsiRekening(doc, "PENERIMAAN PEMBIAYAAN", data.PenerimaanPembiayaan, "PENGELUARAN PEMBIAYAAN", data.PengeluaranPembiayaan); TandaTangan(doc, desa); break;
             default: IsiRingkasan(doc, desa, data, hasil); break;
         }
         return doc;
@@ -250,6 +254,34 @@ public static class Laporan
         p.Inlines.Add(new LineBreak());
         p.Inlines.Add(new Run(string.IsNullOrWhiteSpace(nama) ? "( ................................ )" : nama) { FontWeight = FontWeights.SemiBold, TextDecorations = TextDecorations.Underline });
         return new TableCell(p);
+    }
+
+    // ------------------------------------------------------------ RAP / pembiayaan (susunan seperti cetakan Siskeudes)
+
+    static void IsiRekening(FlowDocument doc, string judul1, IEnumerable<RincianAnggaran> daftar1, string? judul2, IEnumerable<RincianAnggaran>? daftar2)
+    {
+        var t = new Tabel(new double[] { 1.5, 4.4, 0.9, 1.4, 1.9, 2.1 },
+            new[] { "Kode", "Uraian", "SD", "Volume", "Harga Satuan (Rp)", "Jumlah (Rp)" },
+            new[] { false, false, false, true, true, true });
+        void Bagian(string judul, IEnumerable<RincianAnggaran> items)
+        {
+            var list = items.ToList();
+            t.Tebal("", judul, "", "", "", N0(list.Sum(r => r.Jumlah)));
+            foreach (var obj in list.GroupBy(r => string.Join('.', r.KodeRekening.Split('.').Take(3))).OrderBy(g => g.Key, KodeComparer.Instance))
+            {
+                t.Tebal(KodeRek(obj.Key), Lookup.NamaRekening(obj.Key), "", "", "", N0(obj.Sum(r => r.Jumlah)));
+                foreach (var rek in obj.GroupBy(r => r.KodeRekening).OrderBy(g => g.Key, KodeComparer.Instance))
+                {
+                    t.Tambah(KodeRek(rek.Key), Lookup.NamaRekening(rek.Key), "", "", "", N0(rek.Sum(r => r.Jumlah)));
+                    int no = 1;
+                    foreach (var r in rek)
+                        t.Tambah("", $"{no++:00}. {r.Uraian}", r.SumberDana, $"{N(r.Volume)} {r.Satuan}", N(r.HargaSatuan), N0(r.Jumlah));
+                }
+            }
+        }
+        Bagian(judul1, daftar1);
+        if (judul2 != null && daftar2 != null) Bagian(judul2, daftar2);
+        doc.Blocks.Add(t.T);
     }
 
     // ------------------------------------------------------------ RAB

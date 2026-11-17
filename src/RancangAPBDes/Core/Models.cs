@@ -123,6 +123,10 @@ public class Paket : Model
     string _uraianOutput = "";
     public string UraianOutput { get => _uraianOutput; set => Set(ref _uraianOutput, value ?? ""); }
 
+    string _pktd = "Non PKTD";
+    /// <summary>Padat Karya Tunai Desa: "PKTD" atau "Non PKTD".</summary>
+    public string Pktd { get => _pktd; set => Set(ref _pktd, string.IsNullOrWhiteSpace(value) ? "Non PKTD" : value); }
+
     public TrackedCollection<RincianAnggaran> Rincian { get; set; } = new();
 
     [JsonIgnore] public decimal Total => Rincian.Sum(r => r.Jumlah);
@@ -138,7 +142,7 @@ public class Paket : Model
         var p = new Paket
         {
             Nama = Nama, Pola = Pola, Sifat = Sifat, TargetOutput = TargetOutput,
-            Satuan = Satuan, Lokasi = Lokasi, UraianOutput = UraianOutput
+            Satuan = Satuan, Lokasi = Lokasi, UraianOutput = UraianOutput, Pktd = Pktd
         };
         p._sd = _sd;
         foreach (var r in Rincian) p.Rincian.Add(r.Salin());
@@ -220,6 +224,18 @@ public class DataSkenario : Model
     public TrackedCollection<RincianAnggaran> PenerimaanPembiayaan { get; set; } = new();
     public TrackedCollection<RincianAnggaran> PengeluaranPembiayaan { get; set; } = new();
     public TrackedCollection<Kegiatan> Kegiatan { get; set; } = new();
+    /// <summary>Bidang & sub bidang yang ditambahkan desa (seperti tab Bidang/Sub Bidang di Siskeudes).</summary>
+    public TrackedCollection<string> BidangDipakai { get; set; } = new();
+    public TrackedCollection<string> SubBidangDipakai { get; set; } = new();
+
+    /// <summary>Bidang yang tampil: yang ditambahkan + yang sudah punya kegiatan.</summary>
+    public List<string> DaftarBidang() =>
+        BidangDipakai.Union(SubBidangDipakai.Select(s => s.Split('.')[0])).Union(Kegiatan.Select(k => k.KodeSubBidang.Split('.')[0]))
+            .Where(s => s != "").Distinct().OrderBy(s => s, KodeComparer.Instance).ToList();
+
+    public List<string> DaftarSubBidang(string bidang) =>
+        SubBidangDipakai.Union(Kegiatan.Select(k => k.KodeSubBidang))
+            .Where(s => s.Split('.')[0] == bidang).Distinct().OrderBy(s => s, KodeComparer.Instance).ToList();
 
     string _catatan = "";
     public string Catatan { get => _catatan; set => Set(ref _catatan, value ?? ""); }

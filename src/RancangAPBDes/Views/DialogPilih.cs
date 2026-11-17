@@ -112,6 +112,7 @@ public class DialogPilih : Window
 
     public static PilihanKode? Tampil(Window? pemilik, string judul, IEnumerable<PilihanKode> pilihan)
     {
+        if (RancangAPBDes.Core.AppState.ModeUji) return null;
         var d = new DialogPilih(judul, pilihan);
         if (pemilik != null && pemilik.IsLoaded) d.Owner = pemilik;
         return d.ShowDialog() == true ? d._hasil : null;

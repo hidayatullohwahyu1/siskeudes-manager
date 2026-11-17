@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using RancangAPBDes.Core;
 
 namespace RancangAPBDes.Views;
@@ -16,72 +14,42 @@ public class BarisKelompok
 }
 
 /// <summary>
-/// Isian Data Anggaran – susunan mengikuti Siskeudes:
-/// Kegiatan (Bidang › Sub Bidang › Kegiatan › Paket), Pendapatan (RAP › RAP Rinci),
-/// Belanja (Kegiatan › Paket › RAB › RAB Rinci), Pembiayaan 1 dan Pembiayaan 2.
+/// Data Entri › Penganggaran › Isian Data Anggaran, disusun seperti Siskeudes:
+/// Kegiatan (Bidang › Sub Bidang › Kegiatan › Paket Kegiatan), Pendapatan (RAP › RAP Rinci),
+/// Belanja (Bidang › Kegiatan › Paket › RAB › RAB Rinci), Pembiayaan 1 dan Pembiayaan 2.
 /// </summary>
 public class IsianAnggaranView : UserControl
 {
     static readonly string[] DaftarPola = { "Swakelola", "Kerjasama Antar Desa", "Kerjasama dengan Pihak Ketiga", "Penyedia" };
     static readonly string[] DaftarSifat = { "Fisik", "Non Fisik" };
+    static readonly string[] DaftarPktd = { "Non PKTD", "PKTD" };
 
     readonly AppState S = AppState.Instance;
-    readonly ListBox _nav = new();
+    readonly ListBox _nav = Gaya.Nav();
     readonly ContentControl _isi = new() { Focusable = false };
-    readonly TextBlock _subJudul = new() { Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
     readonly List<(string nama, TabControl tab)> _bagian = new();
     readonly List<HalamanData> _semua = new();
 
-    // Pilihan bersama
-    string? _bidang, _sub;
+    // Pilihan bersama antar tab
+    string? _bidang, _sub, _bidangBelanja;
     Kegiatan? _keg;
     Paket? _paket;
 
+    /// <summary>Dipanggil tombol Cetak di tab RAP/RAB (membuka pratinjau laporan).</summary>
+    public static Action<string>? BukaLaporan { get; set; }
+
     public IsianAnggaranView()
     {
-        var akar = new Grid();
-        akar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        akar.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-        var kepala = new Border { Background = (Brush)Application.Current.FindResource("LatarKepalaForm"), Padding = new Thickness(12, 6, 12, 6) };
-        var kg = new Grid();
-        kg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        kg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        kg.Children.Add(new TextBlock { Text = "ISIAN DATA ANGGARAN", Foreground = Brushes.White, FontSize = 15, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) });
-        Grid.SetColumn(_subJudul, 1);
-        _subJudul.TextAlignment = TextAlignment.Right;
-        kg.Children.Add(_subJudul);
-        kepala.Child = kg;
-        akar.Children.Add(kepala);
-
-        var badan = new Grid();
-        badan.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(178) });
-        badan.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        Grid.SetRow(badan, 1);
-        akar.Children.Add(badan);
-
-        var navBingkai = new Border { Background = Brushes.White, BorderBrush = (Brush)Application.Current.FindResource("Garis"), BorderThickness = new Thickness(1, 0, 1, 1), Child = _nav };
-        _nav.BorderThickness = new Thickness(0);
-        _nav.Padding = new Thickness(0, 6, 0, 6);
-        _nav.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled);
-        _nav.ItemContainerStyle = GayaNav();
-        badan.Children.Add(navBingkai);
-
-        _isi.Margin = new Thickness(8, 8, 0, 0);
-        Grid.SetColumn(_isi, 1);
-        badan.Children.Add(_isi);
-        Content = akar;
-
         BangunKegiatan();
-        BangunRekening("Pendapatan", "RAP", "RAP Rinci", "4", () => S.Data?.Pendapatan, SumberDanaPendapatan, "tahun");
+        BangunRekening("Pendapatan", "RAP", "RAP Rinci", "4", () => S.Data?.Pendapatan, SumberDanaPendapatan, "tahun", Laporan.Pendapatan);
         BangunBelanja();
-        BangunRekening("Pembiayaan 1 – Penerimaan", "Penerimaan Pembiayaan", "Rincian", "6.1", () => S.Data?.PenerimaanPembiayaan, _ => "", "Ls");
-        BangunRekening("Pembiayaan 2 – Pengeluaran", "Pengeluaran Pembiayaan", "Rincian", "6.2", () => S.Data?.PengeluaranPembiayaan, _ => "", "tahun");
+        BangunRekening("Pembiayaan 1", "Penerimaan", "Rincian Penerimaan", "6.1", () => S.Data?.PenerimaanPembiayaan, _ => "", "Ls", Laporan.Pembiayaan);
+        BangunRekening("Pembiayaan 2", "Pengeluaran", "Rincian Pengeluaran", "6.2", () => S.Data?.PengeluaranPembiayaan, _ => "", "tahun", Laporan.Pembiayaan);
 
-        foreach (var (nama, _) in _bagian)
-            _nav.Items.Add(new ListBoxItem { Content = new TextBlock { Text = nama, TextWrapping = TextWrapping.Wrap } });
+        foreach (var (nama, _) in _bagian) _nav.Items.Add(Gaya.ItemNav(nama));
         _nav.SelectionChanged += (_, _) => TampilkanBagian();
         _nav.SelectedIndex = 0;
+        Content = Gaya.DenganNav(_nav, _isi);
 
         Loaded += (_, _) =>
         {
@@ -89,7 +57,6 @@ public class IsianAnggaranView : UserControl
             S.HasilBerubah += SegarkanTampil;
             S.ReferensiBerubah += SegarkanTampil;
             S.SebelumDataDiganti += BatalkanIsian;
-            PerbaruiJudul();
             SegarkanTampil();
         };
         Unloaded += (_, _) =>
@@ -101,18 +68,7 @@ public class IsianAnggaranView : UserControl
         };
     }
 
-    static Style GayaNav()
-    {
-        var s = new Style(typeof(ListBoxItem));
-        s.Setters.Add(new Setter(PaddingProperty, new Thickness(12, 8, 12, 8)));
-        s.Setters.Add(new Setter(CursorProperty, System.Windows.Input.Cursors.Hand));
-        var t = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        t.Setters.Add(new Setter(FontWeightProperty, FontWeights.SemiBold));
-        s.Triggers.Add(t);
-        return s;
-    }
-
-    /// <summary>Pilih bagian dan tab (dipakai uji dan navigasi).</summary>
+    /// <summary>Pilih bagian dan tab (navigasi dan uji).</summary>
     public void Buka(int bagian, int tab = 0)
     {
         _nav.SelectedIndex = bagian;
@@ -124,6 +80,8 @@ public class IsianAnggaranView : UserControl
             ? (_bagian[_nav.SelectedIndex].tab.SelectedItem as TabItem)?.Content as HalamanData
             : null;
 
+    public IEnumerable<HalamanData> SemuaHalaman => _semua;
+
     void TampilkanBagian()
     {
         if (_nav.SelectedIndex < 0) return;
@@ -131,18 +89,7 @@ public class IsianAnggaranView : UserControl
         SegarkanTampil();
     }
 
-    void PerbaruiJudul()
-    {
-        var info = S.SkenarioAktif;
-        _subJudul.Text = info == null ? "" :
-            $"{(string.IsNullOrWhiteSpace(S.Desa.NamaDesa) ? "Desa (belum diisi)" : S.Desa.NamaDesa)}  ·  Tahun {info.Tahun}  ·  Skenario: {info.Nama}{(info.IsFinal ? " (POSTING)" : "")}";
-    }
-
-    void SegarkanTampil()
-    {
-        PerbaruiJudul();
-        HalamanAktif?.Segarkan();
-    }
+    void SegarkanTampil() => HalamanAktif?.Segarkan();
 
     void BatalkanIsian()
     {
@@ -160,10 +107,10 @@ public class IsianAnggaranView : UserControl
 
     TabControl BuatTab(string nama, params (string judul, HalamanData h)[] halaman)
     {
-        var tab = new TabControl { Padding = new Thickness(0), BorderThickness = new Thickness(0) };
+        var tab = Gaya.TabKiri();
         foreach (var (judul, h) in halaman)
         {
-            tab.Items.Add(new TabItem { Header = judul, Content = h });
+            tab.Items.Add(Gaya.Tab(judul, h));
             _semua.Add(h);
         }
         tab.SelectionChanged += (_, e) =>
@@ -175,74 +122,112 @@ public class IsianAnggaranView : UserControl
         return tab;
     }
 
-    void PindahTab(TabControl tab, int idx) => tab.SelectedIndex = idx;
+    static void PindahTab(TabControl tab, int idx) => tab.SelectedIndex = idx;
+
+    static IEnumerable<Kolom> KolomKelompok(string judulKode, string judulNama) => new[]
+    {
+        new Kolom(judulKode, "Kode", 90),
+        new Kolom { Judul = judulNama, Path = "Nama", MinLebar = 220 },
+        new Kolom { Judul = "Jml Kegiatan", Path = "Jumlah", Lebar = 90, Angka = true, Format = "0" },
+        new Kolom { Judul = "Pagu (Rp)", Path = "Nilai", Lebar = 140, Angka = true, Tebal = true, Format = "#,##0" },
+    };
+
+    BarisKelompok BarisBidang(string kode)
+    {
+        var keg = S.Data!.Kegiatan.Where(k => k.KodeSubBidang.Split('.')[0] == kode).ToList();
+        var nama = Lookup.NamaBidang(kode);
+        return new BarisKelompok { Kode = kode, Nama = nama == "" ? "(tidak ada di referensi)" : nama, Jumlah = keg.Count, Nilai = keg.Sum(k => k.Total) };
+    }
+
+    BarisKelompok BarisSub(string kode)
+    {
+        var keg = S.Data!.Kegiatan.Where(k => k.KodeSubBidang == kode).ToList();
+        var nama = Lookup.NamaSubBidang(kode);
+        return new BarisKelompok { Kode = kode, Nama = nama == "" ? "(tidak ada di referensi)" : nama, Jumlah = keg.Count, Nilai = keg.Sum(k => k.Total) };
+    }
 
     // ================================================================ Kegiatan
 
-    List<BarisKelompok> BarisBidang()
-    {
-        var d = S.Data;
-        if (d == null) return new();
-        return S.Referensi.Bidang.OrderBy(b => b.Kode, KodeComparer.Instance).Select(b =>
-        {
-            var keg = d.Kegiatan.Where(k => k.KodeSubBidang.Split('.')[0] == b.Kode).ToList();
-            return new BarisKelompok { Kode = b.Kode, Nama = b.Nama, Jumlah = keg.Count, Nilai = keg.Sum(k => k.Total) };
-        }).ToList();
-    }
-
-    List<BarisKelompok> BarisSub()
-    {
-        var d = S.Data;
-        if (d == null || _bidang == null) return new();
-        var kode = S.Referensi.SubBidang.Where(s => s.KodeBidang == _bidang).Select(s => s.Kode)
-            .Union(d.Kegiatan.Where(k => k.KodeSubBidang.Split('.')[0] == _bidang).Select(k => k.KodeSubBidang))
-            .Distinct().OrderBy(k => k, KodeComparer.Instance);
-        return kode.Select(k =>
-        {
-            var keg = d.Kegiatan.Where(x => x.KodeSubBidang == k).ToList();
-            var nama = Lookup.NamaSubBidang(k);
-            return new BarisKelompok { Kode = k, Nama = nama == "" ? "(tidak ada di referensi)" : nama, Jumlah = keg.Count, Nilai = keg.Sum(x => x.Total) };
-        }).ToList();
-    }
-
     void BangunKegiatan()
     {
-        HalamanData hBidang = null!, hSub = null!, hKeg = null!, hPaket = null!;
         TabControl tab = null!;
+        HalamanData hBidang = null!, hSub = null!;
 
         hBidang = new HalamanData
         {
             JudulData = "Data Bidang",
             TanpaForm = true,
-            BolehUbah = () => false,
             Kunci = o => ((BarisKelompok)o).Kode,
-            Tampilan = BarisBidang,
-            Konteks = () => "pilih bidang, lalu buka tab Sub Bidang"
+            Syarat = () => S.Data == null ? "Belum ada skenario." : null,
+            Konteks = () => "Tambah bidang yang akan dianggarkan, lalu buka tab Sub Bidang",
+            Tampilan = () => S.Data?.DaftarBidang().Select(BarisBidang).ToList(),
+            AksiTambah = () =>
+            {
+                var ada = S.Data!.DaftarBidang();
+                var p = DialogPilih.Tampil(Window.GetWindow(this), "Pilih Bidang",
+                    S.Referensi.Bidang.Where(b => !ada.Contains(b.Kode)).OrderBy(b => b.Kode, KodeComparer.Instance)
+                        .Select(b => new PilihanKode(b.Kode, b.Kode + ".", b.Nama)));
+                if (p == null) return;
+                S.Data.BidangDipakai.Add(p.Nilai);
+                _bidang = p.Nilai;
+                hBidang.Segarkan();
+                hBidang.PilihKunci(p.Nilai);
+            },
+            AksiHapus = () =>
+            {
+                if (hBidang.Terpilih is not BarisKelompok b) return;
+                if (b.Jumlah > 0) { Pesan.Peringatan($"Bidang {b.Kode} masih memiliki {b.Jumlah} kegiatan. Hapus kegiatannya terlebih dahulu."); return; }
+                if (!Pesan.Tanya($"Hapus bidang {b.Kode}. {b.Nama} dari daftar?")) return;
+                S.Data!.BidangDipakai.Remove(b.Kode);
+                foreach (var s in S.Data.SubBidangDipakai.Where(s => s.Split('.')[0] == b.Kode).ToList()) S.Data.SubBidangDipakai.Remove(s);
+                hBidang.Segarkan();
+            }
         };
         hBidang.Kolom.AddRange(KolomKelompok("Kd Bidang", "Nama Bidang"));
         hBidang.PilihanBerubah += o => { var k = (o as BarisKelompok)?.Kode; if (k != _bidang) { _bidang = k; _sub = null; } };
-        hBidang.TambahTombol("Lihat Sub Bidang ›", () => PindahTab(tab, 1), butuhUbah: false, butuhPilih: true);
+        hBidang.TambahTombol("Sub Bidang ›", () => PindahTab(tab, 1), butuhUbah: false, butuhPilih: true, tip: "Buka tab Sub Bidang");
 
         hSub = new HalamanData
         {
             JudulData = "Data Sub Bidang",
             TanpaForm = true,
-            BolehUbah = () => false,
             Kunci = o => ((BarisKelompok)o).Kode,
-            Syarat = () => _bidang == null ? "Pilih bidang terlebih dahulu di tab Bidang." : null,
-            Konteks = () => $"Bidang {_bidang} {Lookup.NamaBidang(_bidang ?? "")}",
-            Tampilan = BarisSub
+            Syarat = () => S.Data == null ? "Belum ada skenario." : _bidang == null ? "Pilih bidang terlebih dahulu di tab Bidang." : null,
+            Konteks = () => $"Bidang {_bidang}. {Lookup.NamaBidang(_bidang ?? "")}",
+            Tampilan = () => _bidang == null ? null : S.Data?.DaftarSubBidang(_bidang).Select(BarisSub).ToList(),
+            AksiTambah = () =>
+            {
+                if (_bidang == null) return;
+                var ada = S.Data!.DaftarSubBidang(_bidang);
+                var p = DialogPilih.Tampil(Window.GetWindow(this), "Pilih Sub Bidang",
+                    S.Referensi.SubBidang.Where(s => s.KodeBidang == _bidang && !ada.Contains(s.Kode)).OrderBy(s => s.Kode, KodeComparer.Instance)
+                        .Select(s => new PilihanKode(s.Kode, s.Kode + ".", s.Nama)));
+                if (p == null) return;
+                S.Data.SubBidangDipakai.Add(p.Nilai);
+                if (!S.Data.BidangDipakai.Contains(_bidang)) S.Data.BidangDipakai.Add(_bidang);
+                _sub = p.Nilai;
+                hSub.Segarkan();
+                hSub.PilihKunci(p.Nilai);
+            },
+            AksiHapus = () =>
+            {
+                if (hSub.Terpilih is not BarisKelompok b) return;
+                if (b.Jumlah > 0) { Pesan.Peringatan($"Sub bidang {b.Kode} masih memiliki {b.Jumlah} kegiatan. Hapus kegiatannya terlebih dahulu."); return; }
+                if (!Pesan.Tanya($"Hapus sub bidang {b.Kode}. {b.Nama} dari daftar?")) return;
+                S.Data!.SubBidangDipakai.Remove(b.Kode);
+                hSub.Segarkan();
+            }
         };
         hSub.Kolom.AddRange(KolomKelompok("Kd Sub Bidang", "Nama Sub Bidang"));
         hSub.PilihanBerubah += o => { var k = (o as BarisKelompok)?.Kode; if (k != _sub) _sub = k; };
-        hSub.TambahTombol("Lihat Kegiatan ›", () => PindahTab(tab, 2), butuhUbah: false, butuhPilih: true);
+        hSub.TambahTombol("Kegiatan ›", () => PindahTab(tab, 2), butuhUbah: false, butuhPilih: true, tip: "Buka tab Kegiatan");
 
-        hKeg = new HalamanData
+        var hKeg = new HalamanData
         {
             JudulData = "Data Kegiatan",
             Kunci = o => ((Kegiatan)o).Id.ToString(),
             Syarat = () => S.Data == null ? "Belum ada skenario." : _sub == null ? "Pilih sub bidang terlebih dahulu di tab Sub Bidang." : null,
-            Konteks = () => $"Sub Bidang {_sub} {Lookup.NamaSubBidang(_sub ?? "")}",
+            Konteks = () => $"Sub Bidang {_sub}. {Lookup.NamaSubBidang(_sub ?? "")}",
             Daftar = () => S.Data?.Kegiatan,
             Tampilan = () => S.Data?.Kegiatan.Where(k => k.KodeSubBidang == _sub).OrderBy(k => k.NoUrut).ToList(),
             BuatBaru = () => _sub == null ? null : new Kegiatan
@@ -268,34 +253,35 @@ public class IsianAnggaranView : UserControl
             }
         };
         hKeg.Kolom.Add(new Kolom("Kd Kegiatan", "Kode", 90));
-        hKeg.Kolom.Add(new Kolom { Judul = "Nama Kegiatan", Path = "Nama", DuaBaris = true, MinLebar = 220 });
-        hKeg.Kolom.Add(new Kolom("Pelaksana (PKA)", "Pelaksana", 160));
+        hKeg.Kolom.Add(new Kolom { Judul = "Nama Kegiatan", Path = "Nama", MinLebar = 220, Bintang = 2 });
+        hKeg.Kolom.Add(new Kolom { Judul = "Nama Pelaksana", Path = "Pelaksana", MinLebar = 130 });
         hKeg.Kolom.Add(new Kolom("Waktu", "Waktu", 85));
         hKeg.Kolom.Add(new Kolom { Judul = "Pagu (Rp)", Path = "Total", Lebar = 130, Angka = true, Tebal = true, Format = "#,##0" });
         hKeg.Isian.AddRange(new[]
         {
             new Isian
             {
-                Label = "No. Kegiatan", Path = "NoUrut", Jenis = JenisIsian.Kode, Wajib = true, Penuh = true, Format = "00",
+                Label = "Kd Kegiatan", Path = "NoUrut", Jenis = JenisIsian.Kode, Wajib = true, Penuh = true, Format = "00",
                 Petunjuk = "Nomor kegiatan di dalam sub bidang. Tekan … untuk memilih dari referensi kegiatan.",
                 DaftarKode = o => S.Referensi.Kegiatan.Where(r => r.KodeSubBidang == ((Kegiatan)o).KodeSubBidang)
                     .OrderBy(r => r.Kode, KodeComparer.Instance)
-                    .Select(r => new PilihanKode(r.Kode.Split('.').Last(), r.Kode, r.Nama)),
+                    .Select(r => new PilihanKode(r.Kode.Split('.').Last(), r.Kode + ".", r.Nama)),
                 SetelahPilih = (o, p) => ((Kegiatan)o).Nama = p.Nama
             },
             new Isian { Label = "Nama Kegiatan", Path = "Nama", Jenis = JenisIsian.TeksPanjang, Wajib = true, Penuh = true },
             new Isian { Label = "Lokasi", Path = "Lokasi" },
-            new Isian { Label = "Waktu Pelaksanaan", Path = "Waktu" },
-            new Isian { Label = "Pelaksana Kegiatan (PKA)", Path = "Pelaksana", Jenis = JenisIsian.PilihanBebas, Pilihan = () => S.DaftarPelaksana },
-            new Isian { Label = "Keluaran / Output", Path = "Keluaran" },
+            new Isian { Label = "Waktu", Path = "Waktu" },
+            new Isian { Label = "Nama Pelaksana", Path = "Pelaksana", Jenis = JenisIsian.PilihanBebas, Pilihan = () => S.DaftarPelaksana, Petunjuk = "Pelaksana Kegiatan Anggaran (PKA)" },
+            new Isian { Label = "Pagu Kegiatan", Path = "Total", Jenis = JenisIsian.Info, Format = "Rp #,##0" },
+            new Isian { Label = "Keluaran", Path = "Keluaran", Penuh = true },
             new Isian { Label = "Volume Keluaran", Path = "VolumeKeluaran", Jenis = JenisIsian.Angka },
             new Isian { Label = "Satuan Keluaran", Path = "SatuanKeluaran", Jenis = JenisIsian.PilihanBebas, Pilihan = () => S.DaftarSatuan },
             new Isian { Label = "Catatan Musyawarah", Path = "Catatan", Jenis = JenisIsian.TeksPanjang, Penuh = true, Petunjuk = "Catatan hasil rapat (tidak diinput ke Siskeudes)" },
         });
         hKeg.PilihanBerubah += o => { var k = o as Kegiatan; if (!ReferenceEquals(k, _keg)) { _keg = k; _paket = null; } };
-        hKeg.TambahTombol("Lihat Paket ›", () => PindahTab(tab, 3), butuhUbah: false, butuhPilih: true);
+        hKeg.TambahTombol("Paket Kegiatan ›", () => PindahTab(tab, 3), butuhUbah: false, butuhPilih: true, tip: "Buka tab Paket Kegiatan");
 
-        hPaket = BuatHalamanPaket(bisaUbah: true);
+        var hPaket = BuatHalamanPaket(bisaUbah: true);
         tab = BuatTab("Kegiatan", ("Bidang", hBidang), ("Sub Bidang", hSub), ("Kegiatan", hKeg), ("Paket Kegiatan", hPaket));
     }
 
@@ -305,10 +291,10 @@ public class IsianAnggaranView : UserControl
         {
             JudulData = "Paket Kegiatan",
             TanpaForm = !bisaUbah,
-            BolehUbah = bisaUbah ? () => S.BisaUbah : () => false,
+            HanyaBaca = !bisaUbah,
             Kunci = o => ((Paket)o).Id.ToString(),
             Syarat = () => _keg == null ? "Pilih kegiatan terlebih dahulu di tab Kegiatan." : null,
-            Konteks = () => _keg == null ? null : $"Kegiatan {_keg.Kode} {_keg.Nama}",
+            Konteks = () => _keg == null ? null : $"Kegiatan {_keg.Kode}. {_keg.Nama}",
             Daftar = () => _keg?.Paket,
             Tampilan = () =>
             {
@@ -323,25 +309,27 @@ public class IsianAnggaranView : UserControl
                 return $"Hapus paket \"{p.Nama}\" beserta {p.Rincian.Count} rincian RAB (Rp {p.Total:#,##0})?";
             }
         };
-        h.Kolom.Add(new Kolom { Judul = "No", Path = "No", Lebar = 45, Format = "00" });
-        h.Kolom.Add(new Kolom { Judul = "Nama Paket", Path = "Nama", DuaBaris = true, MinLebar = 200 });
+        h.Kolom.Add(new Kolom { Judul = "No.ID", Path = "No", Lebar = 55, Format = "00" });
+        h.Kolom.Add(new Kolom { Judul = "Nama Paket", Path = "Nama", MinLebar = 200, Bintang = 2 });
         h.Kolom.Add(new Kolom("Sumber Dana", "SumberDana", 85));
-        h.Kolom.Add(new Kolom("Pola", "Pola", 110));
-        h.Kolom.Add(new Kolom("Sifat", "Sifat", 85));
-        h.Kolom.Add(new Kolom { Judul = "Target", Path = "TargetOutput", Lebar = 70, Angka = true });
+        h.Kolom.Add(new Kolom { Judul = "Pola", Path = "Pola", MinLebar = 95 });
+        h.Kolom.Add(new Kolom("Sifat", "Sifat", 80));
+        h.Kolom.Add(new Kolom { Judul = "Target", Path = "TargetOutput", Lebar = 65, Angka = true });
         h.Kolom.Add(new Kolom("Satuan", "Satuan", 75));
-        h.Kolom.Add(new Kolom { Judul = "Nilai (Rp)", Path = "Total", Lebar = 130, Angka = true, Tebal = true, Format = "#,##0" });
+        h.Kolom.Add(new Kolom { Judul = "Nilai (Rp)", Path = "Total", Lebar = 125, Angka = true, Tebal = true, Format = "#,##0" });
         if (bisaUbah)
         {
             h.Isian.AddRange(new[]
             {
                 new Isian { Label = "Nama Paket", Path = "Nama", Jenis = JenisIsian.TeksPanjang, Wajib = true, Penuh = true },
+                new Isian { Label = "Nilai (Rp)", Path = "Total", Jenis = JenisIsian.Info, Format = "#,##0" },
                 new Isian { Label = "Sumber Dana", Path = "SumberDana", Jenis = JenisIsian.Pilihan, Wajib = true, Pilihan = () => S.DaftarSumberDana, TampilPath = "Tampil", NilaiPath = "Kode" },
                 new Isian { Label = "Pola Kegiatan", Path = "Pola", Jenis = JenisIsian.Pilihan, Pilihan = () => DaftarPola },
                 new Isian { Label = "Sifat Kegiatan", Path = "Sifat", Jenis = JenisIsian.Pilihan, Pilihan = () => DaftarSifat },
                 new Isian { Label = "Target Output", Path = "TargetOutput", Jenis = JenisIsian.Angka },
                 new Isian { Label = "Satuan", Path = "Satuan", Jenis = JenisIsian.PilihanBebas, Pilihan = () => S.DaftarSatuan },
                 new Isian { Label = "Lokasi Kegiatan", Path = "Lokasi" },
+                new Isian { Label = "PKTD / Non PKTD", Path = "Pktd", Jenis = JenisIsian.Pilihan, Pilihan = () => DaftarPktd },
                 new Isian { Label = "Uraian Output", Path = "UraianOutput", Jenis = JenisIsian.TeksPanjang, Penuh = true },
             });
         }
@@ -356,14 +344,6 @@ public class IsianAnggaranView : UserControl
         p.SumberDana = acuan?.SumberDana ?? "";
         return p;
     }
-
-    static IEnumerable<Kolom> KolomKelompok(string judulKode, string judulNama) => new[]
-    {
-        new Kolom(judulKode, "Kode", 100),
-        new Kolom { Judul = judulNama, Path = "Nama", DuaBaris = true, MinLebar = 220 },
-        new Kolom { Judul = "Jml Kegiatan", Path = "Jumlah", Lebar = 95, Angka = true, Format = "0" },
-        new Kolom { Judul = "Pagu (Rp)", Path = "Nilai", Lebar = 140, Angka = true, Tebal = true, Format = "#,##0" },
-    };
 
     int NomorKegiatanBerikut(string kodeSub)
     {
@@ -388,34 +368,48 @@ public class IsianAnggaranView : UserControl
 
     void BangunBelanja()
     {
-        HalamanData hKeg = null!, hPaket = null!;
         TabControl tab = null!;
-        hKeg = new HalamanData
+        var hBidang = new HalamanData
+        {
+            JudulData = "Bidang",
+            TanpaForm = true,
+            HanyaBaca = true,
+            Kunci = o => ((BarisKelompok)o).Kode,
+            Syarat = () => S.Data == null ? "Belum ada skenario." : S.Data.Kegiatan.Count == 0 ? "Belum ada kegiatan. Tambahkan dulu di bagian Kegiatan." : null,
+            Konteks = () => "pilih bidang, lalu buka tab Kegiatan",
+            Tampilan = () => S.Data?.DaftarBidang().Select(BarisBidang).ToList()
+        };
+        hBidang.Kolom.AddRange(KolomKelompok("Kd Bidang", "Nama Bidang"));
+        hBidang.PilihanBerubah += o => _bidangBelanja = (o as BarisKelompok)?.Kode;
+        hBidang.TambahTombol("Kegiatan ›", () => PindahTab(tab, 1), butuhUbah: false, butuhPilih: true, tip: "Buka tab Kegiatan");
+
+        var hKeg = new HalamanData
         {
             JudulData = "Kegiatan",
             TanpaForm = true,
-            BolehUbah = () => false,
+            HanyaBaca = true,
             Kunci = o => ((Kegiatan)o).Id.ToString(),
-            Syarat = () => S.Data == null ? "Belum ada skenario." : S.Data.Kegiatan.Count == 0 ? "Belum ada kegiatan. Tambahkan dulu di bagian Kegiatan." : null,
-            Konteks = () => "pilih kegiatan, lalu buka tab Paket",
-            Tampilan = () => S.Data?.Kegiatan.OrderBy(k => k.Kode, KodeComparer.Instance).ToList()
+            Syarat = () => S.Data == null ? "Belum ada skenario." : _bidangBelanja == null ? "Pilih bidang terlebih dahulu di tab Bidang." : null,
+            Konteks = () => $"Bidang {_bidangBelanja}. {Lookup.NamaBidang(_bidangBelanja ?? "")}",
+            Tampilan = () => S.Data?.Kegiatan.Where(k => k.KodeSubBidang.Split('.')[0] == _bidangBelanja).OrderBy(k => k.Kode, KodeComparer.Instance).ToList()
         };
         hKeg.Kolom.Add(new Kolom("Kd Kegiatan", "Kode", 90));
-        hKeg.Kolom.Add(new Kolom { Judul = "Nama Kegiatan", Path = "Nama", DuaBaris = true, MinLebar = 220 });
-        hKeg.Kolom.Add(new Kolom("Pelaksana (PKA)", "Pelaksana", 160));
+        hKeg.Kolom.Add(new Kolom { Judul = "Nama Kegiatan", Path = "Nama", MinLebar = 220, Bintang = 2 });
+        hKeg.Kolom.Add(new Kolom { Judul = "Nama Pelaksana", Path = "Pelaksana", MinLebar = 130 });
         hKeg.Kolom.Add(new Kolom { Judul = "Pagu (Rp)", Path = "Total", Lebar = 130, Angka = true, Tebal = true, Format = "#,##0" });
         hKeg.PilihanBerubah += o => { var k = o as Kegiatan; if (!ReferenceEquals(k, _keg)) { _keg = k; _paket = null; } };
-        hKeg.TambahTombol("Lihat Paket ›", () => PindahTab(tab, 1), butuhUbah: false, butuhPilih: true);
+        hKeg.TambahTombol("Paket ›", () => PindahTab(tab, 2), butuhUbah: false, butuhPilih: true, tip: "Buka tab Paket");
 
-        hPaket = BuatHalamanPaket(bisaUbah: false);
-        hPaket.TambahTombol("Lihat RAB ›", () => PindahTab(tab, 2), butuhUbah: false, butuhPilih: true);
+        var hPaket = BuatHalamanPaket(bisaUbah: false);
+        hPaket.TambahTombol("RAB ›", () => PindahTab(tab, 3), butuhUbah: false, butuhPilih: true, tip: "Buka tab RAB");
 
         var (hRab, hRinci) = BuatPasanganRekening("RAB", "RAB Rinci", "5", () => _paket?.Rincian,
             _ => _paket?.SumberDana ?? "", "Ls",
             syarat: () => _paket == null ? "Pilih paket terlebih dahulu di tab Paket." : null,
-            konteks: () => _paket == null ? null : $"{_keg?.Kode} › Paket {_paket.No:00} {_paket.Nama}",
-            pindahKeRinci: () => PindahTab(tab, 3));
-        tab = BuatTab("Belanja", ("Kegiatan", hKeg), ("Paket", hPaket), ("RAB", hRab), ("RAB Rinci", hRinci));
+            konteks: () => _paket == null ? null : $"Kegiatan {_keg?.Kode}. › Paket {_paket.No:00} {_paket.Nama}",
+            pindahKeRinci: () => PindahTab(tab, 4),
+            laporan: Laporan.Rab);
+        tab = BuatTab("Belanja", ("Bidang", hBidang), ("Kegiatan", hKeg), ("Paket", hPaket), ("RAB", hRab), ("RAB Rinci", hRinci));
     }
 
     // ================================================================ Pendapatan & Pembiayaan
@@ -433,20 +427,21 @@ public class IsianAnggaranView : UserControl
     }
 
     void BangunRekening(string nama, string judulRek, string judulRinci, string awalan,
-        Func<TrackedCollection<RincianAnggaran>?> daftar, Func<string, string> sdAwal, string satuanAwal)
+        Func<TrackedCollection<RincianAnggaran>?> daftar, Func<string, string> sdAwal, string satuanAwal, string laporan)
     {
         TabControl tab = null!;
         var (hRek, hRinci) = BuatPasanganRekening(judulRek, judulRinci, awalan, daftar, sdAwal, satuanAwal,
             syarat: () => S.Data == null ? "Belum ada skenario." : null,
             konteks: () => null,
-            pindahKeRinci: () => PindahTab(tab, 1));
+            pindahKeRinci: () => PindahTab(tab, 1),
+            laporan: laporan);
         tab = BuatTab(nama, (judulRek, hRek), (judulRinci, hRinci));
     }
 
     /// <summary>Tabel rekening (RAP/RAB) dan rinciannya.</summary>
     (HalamanData rek, HalamanData rinci) BuatPasanganRekening(string judulRek, string judulRinci, string awalan,
         Func<TrackedCollection<RincianAnggaran>?> daftar, Func<string, string> sdAwal, string satuanAwal,
-        Func<string?> syarat, Func<string?> konteks, Action pindahKeRinci)
+        Func<string?> syarat, Func<string?> konteks, Action pindahKeRinci, string laporan)
     {
         string? rek = null, tertunda = null;
         HalamanData hRek = null!, hRinci = null!;
@@ -459,11 +454,13 @@ public class IsianAnggaranView : UserControl
             if (tertunda != null && !kode.Contains(tertunda)) kode.Add(tertunda);
             return kode.OrderBy(k => k, KodeComparer.Instance).Select(k => new BarisKelompok
             {
-                Kode = k, Nama = Lookup.NamaRekening(k),
+                Kode = k + ".", Nama = Lookup.NamaRekening(k),
                 Jumlah = list.Count(r => r.KodeRekening == k),
                 Nilai = list.Where(r => r.KodeRekening == k).Sum(r => r.Jumlah)
             }).ToList();
         }
+
+        static string Kode(object o) => ((BarisKelompok)o).Kode.TrimEnd('.');
 
         IEnumerable<PilihanKode> PilihanRekening(string? kecuali) =>
             S.Referensi.Rekening
@@ -475,14 +472,14 @@ public class IsianAnggaranView : UserControl
         {
             JudulData = judulRek,
             TanpaForm = true,
-            Kunci = o => ((BarisKelompok)o).Kode,
+            Kunci = Kode,
             Syarat = syarat,
             Konteks = konteks,
             Tampilan = Baris,
-            LabelTambah = "Tambah",
+            AksiCetak = () => BukaLaporan?.Invoke(laporan),
             AksiTambah = () =>
             {
-                var p = DialogPilih.Tampil(Window.GetWindow(this), $"Pilih rekening {judulRek}", PilihanRekening(null));
+                var p = DialogPilih.Tampil(Window.GetWindow(this), $"Pilih Rekening {judulRek}", PilihanRekening(null));
                 if (p == null) return;
                 tertunda = p.Nilai;
                 rek = p.Nilai;
@@ -494,12 +491,13 @@ public class IsianAnggaranView : UserControl
             AksiUbah = () =>
             {
                 if (hRek.Terpilih is not BarisKelompok b) return;
-                var p = DialogPilih.Tampil(Window.GetWindow(this), $"Ganti rekening {b.Kode}. menjadi…", PilihanRekening(b.Kode));
+                var lama = Kode(b);
+                var p = DialogPilih.Tampil(Window.GetWindow(this), $"Ganti rekening {lama}. menjadi…", PilihanRekening(lama));
                 if (p == null) return;
                 var list = daftar();
                 if (list == null) return;
-                foreach (var r in list.Where(r => r.KodeRekening == b.Kode).ToList()) r.KodeRekening = p.Nilai;
-                if (tertunda == b.Kode) tertunda = p.Nilai;
+                foreach (var r in list.Where(r => r.KodeRekening == lama).ToList()) r.KodeRekening = p.Nilai;
+                if (tertunda == lama) tertunda = p.Nilai;
                 rek = p.Nilai;
                 hRek.Segarkan();
                 hRek.PilihKunci(p.Nilai);
@@ -507,19 +505,20 @@ public class IsianAnggaranView : UserControl
             AksiHapus = () =>
             {
                 if (hRek.Terpilih is not BarisKelompok b) return;
-                if (!Pesan.Tanya($"Hapus rekening {b.Kode}. {b.Nama} beserta {b.Jumlah} rincian (Rp {b.Nilai:#,##0})?\n\n(Bisa dikembalikan dengan Batalkan / Ctrl+Z.)")) return;
+                var kode = Kode(b);
+                if (!Pesan.Tanya($"Hapus rekening {b.Kode} {b.Nama} beserta {b.Jumlah} rincian (Rp {b.Nilai:#,##0})?\n\n(Bisa dikembalikan dengan Batalkan / Ctrl+Z.)")) return;
                 var list = daftar();
-                if (list != null) foreach (var r in list.Where(r => r.KodeRekening == b.Kode).ToList()) list.Remove(r);
-                if (tertunda == b.Kode) tertunda = null;
+                if (list != null) foreach (var r in list.Where(r => r.KodeRekening == kode).ToList()) list.Remove(r);
+                if (tertunda == kode) tertunda = null;
                 hRek.Segarkan();
             }
         };
-        hRek.Kolom.Add(new Kolom("Kode Rekening", "Kode", 105));
-        hRek.Kolom.Add(new Kolom { Judul = "Nama Rekening", Path = "Nama", DuaBaris = true, MinLebar = 220 });
-        hRek.Kolom.Add(new Kolom { Judul = "Jml Rinci", Path = "Jumlah", Lebar = 80, Angka = true, Format = "0" });
+        hRek.Kolom.Add(new Kolom("Kd Rincian", "Kode", 100));
+        hRek.Kolom.Add(new Kolom { Judul = "Nama Rincian", Path = "Nama", MinLebar = 220 });
+        hRek.Kolom.Add(new Kolom { Judul = "Jml Rinci", Path = "Jumlah", Lebar = 75, Angka = true, Format = "0" });
         hRek.Kolom.Add(new Kolom { Judul = "Anggaran (Rp)", Path = "Nilai", Lebar = 140, Angka = true, Tebal = true, Format = "#,##0" });
-        hRek.PilihanBerubah += o => rek = (o as BarisKelompok)?.Kode;
-        hRek.TambahTombol($"Lihat {judulRinci} ›", pindahKeRinci, butuhUbah: false, butuhPilih: true);
+        hRek.PilihanBerubah += o => rek = o == null ? null : Kode(o);
+        hRek.TambahTombol($"{judulRinci} ›", pindahKeRinci, butuhUbah: false, butuhPilih: true, tip: $"Buka tab {judulRinci}");
 
         hRinci = new HalamanData
         {
@@ -558,22 +557,24 @@ public class IsianAnggaranView : UserControl
             PesanHapus = o => $"Hapus rincian \"{((RincianAnggaran)o).Uraian}\"?"
         };
         hRinci.Kolom.Add(new Kolom { Judul = "No", Path = "No", Lebar = 45, Format = "00" });
-        hRinci.Kolom.Add(new Kolom { Judul = "Uraian", Path = "Uraian", DuaBaris = true, MinLebar = 200 });
+        hRinci.Kolom.Add(new Kolom { Judul = "Uraian", Path = "Uraian", MinLebar = 200 });
         hRinci.Kolom.Add(new Kolom("Sumber Dana", "SumberDana", 85));
         hRinci.Kolom.Add(new Kolom { Judul = "Volume", Path = "Volume", Lebar = 75, Angka = true });
         hRinci.Kolom.Add(new Kolom("Satuan", "Satuan", 80));
         hRinci.Kolom.Add(new Kolom { Judul = "Harga Satuan (Rp)", Path = "HargaSatuan", Lebar = 130, Angka = true });
-        hRinci.Kolom.Add(new Kolom { Judul = "Jumlah (Rp)", Path = "Jumlah", Lebar = 135, Angka = true, Tebal = true });
+        hRinci.Kolom.Add(new Kolom { Judul = "Anggaran (Rp)", Path = "Jumlah", Lebar = 135, Angka = true, Tebal = true });
         hRinci.Isian.AddRange(new[]
         {
-            new Isian { Label = "Uraian", Path = "Uraian", Wajib = true, Penuh = true, MaksKarakter = 200 },
-            new Isian { Label = "Volume", Path = "Volume", Jenis = JenisIsian.Angka, Petunjuk = "Desimal memakai koma, contoh 2,5" },
+            new Isian { Label = "Uraian", Path = "Uraian", Wajib = true, Penuh = true, MaksKarakter = 50,
+                Petunjuk = "Siskeudes membatasi uraian rincian 50 karakter" },
+            new Isian { Label = "Jumlah Satuan", Path = "Volume", Jenis = JenisIsian.Angka, Petunjuk = "Desimal memakai koma, contoh 2,5" },
             new Isian { Label = "Satuan", Path = "Satuan", Jenis = JenisIsian.PilihanBebas, Pilihan = () => S.DaftarSatuan },
             new Isian { Label = "Harga Satuan (Rp)", Path = "HargaSatuan", Jenis = JenisIsian.Angka },
             new Isian { Label = "Sumber Dana", Path = "SumberDana", Jenis = JenisIsian.Pilihan, Wajib = true, Pilihan = () => S.DaftarSumberDana, TampilPath = "Tampil", NilaiPath = "Kode" },
-            new Isian { Label = "Jumlah", Path = "Jumlah", Jenis = JenisIsian.Info, Format = "Rp #,##0.##" },
-            new Isian { Label = "Keterangan", Path = "Keterangan" },
+            new Isian { Label = "Anggaran", Path = "Jumlah", Jenis = JenisIsian.Info, Format = "Rp #,##0.##" },
+            new Isian { Label = "Keterangan", Path = "Keterangan", Petunjuk = "Catatan musyawarah (tidak diinput ke Siskeudes)" },
         });
+        hRinci.AksiCetak = () => BukaLaporan?.Invoke(laporan);
         return (hRek, hRinci);
     }
 }

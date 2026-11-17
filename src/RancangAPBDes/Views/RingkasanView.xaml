@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:core="clr-namespace:RancangAPBDes.Core">
     <ScrollViewer x:Name="Gulir" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="0,0,8,16">
-            <TextBlock x:Name="TxtJudul" Style="{StaticResource Judul}"/>
+        <StackPanel Margin="14,10,14,16">
+            <TextBlock x:Name="TxtJudul" Style="{StaticResource Judul}" Visibility="Collapsed"/>
             <TextBlock x:Name="TxtSub" Style="{StaticResource TeksRedup}" Margin="0,0,0,12"/>
 
             <WrapPanel x:Name="PanelKartu"/>
