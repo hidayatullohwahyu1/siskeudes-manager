@@ -10,17 +10,17 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="Bandingkan Dua Skenario" Style="{StaticResource Judul}"/>
+        <TextBlock Text="Bandingkan Skenario (Semula – Menjadi)" Style="{StaticResource Judul}"/>
         <TextBlock Grid.Row="1" Style="{StaticResource TeksRedup}" Margin="0,0,0,10"
-                   Text="Berguna saat musyawarah untuk melihat apa saja yang berubah antara usulan awal dan hasil kesepakatan. Selisih = B − A."/>
+                   Text="Berguna saat musyawarah untuk melihat apa saja yang berubah antara usulan awal dan hasil kesepakatan. Bertambah/(berkurang) = Menjadi − Semula."/>
         <WrapPanel Grid.Row="2" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
-                <TextBlock Text="Skenario A" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <TextBlock Text="Semula" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
                 <ComboBox x:Name="CmbA" MinWidth="260" MaxWidth="420" DisplayMemberPath="TampilLengkap"
                           ItemsSource="{Binding SemuaSkenario, Source={x:Static core:AppState.Instance}}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
-                <TextBlock Text="Skenario B" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <TextBlock Text="Menjadi" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
                 <ComboBox x:Name="CmbB" MinWidth="260" MaxWidth="420" DisplayMemberPath="TampilLengkap"
                           ItemsSource="{Binding SemuaSkenario, Source={x:Static core:AppState.Instance}}"/>
             </StackPanel>
@@ -43,9 +43,9 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="120" MinWidth="90" ElementStyle="{StaticResource SelTeks}"/>
                 <DataGridTextColumn Header="Uraian" Binding="{Binding Uraian}" Width="3*" MinWidth="200" ElementStyle="{StaticResource SelTeks}"/>
-                <DataGridTextColumn Header="A (Rp)" Binding="{Binding A, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
-                <DataGridTextColumn Header="B (Rp)" Binding="{Binding B, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
-                <DataGridTextColumn Header="Selisih (Rp)" Binding="{Binding Selisih, StringFormat={}{0:+#,##0;-#,##0;0}}" Width="*" MinWidth="120">
+                <DataGridTextColumn Header="Semula (Rp)" Binding="{Binding A, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                <DataGridTextColumn Header="Menjadi (Rp)" Binding="{Binding B, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                <DataGridTextColumn Header="Bertambah / (Berkurang) (Rp)" Binding="{Binding Selisih, StringFormat={}{0:+#,##0;-#,##0;0}}" Width="*" MinWidth="120">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource SelAngkaTebal}">
                             <Style.Triggers>

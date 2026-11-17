@@ -74,11 +74,11 @@ public partial class RingkasanView : UserControl
     Border Kartu(string judul, decimal nilai, string? ket, string? warna = null)
     {
         var sp = new StackPanel();
-        sp.Children.Add(new TextBlock { Text = judul, Style = (Style)FindResource("TeksRedup"), FontSize = 14 });
-        var angka = new TextBlock { Text = Kalkulasi.Rp(nilai), FontSize = 22, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        sp.Children.Add(new TextBlock { Text = judul, Style = (Style)FindResource("TeksRedup"), FontSize = 12.5 });
+        var angka = new TextBlock { Text = Kalkulasi.Rp(nilai), FontSize = 18, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
         if (warna != null) angka.Foreground = (Brush)FindResource(warna);
         sp.Children.Add(angka);
-        if (ket != null) sp.Children.Add(new TextBlock { Text = ket, Style = (Style)FindResource("TeksRedup"), FontSize = 13 });
-        return new Border { Style = (Style)FindResource("Kartu"), Child = sp, MinWidth = 210 };
+        if (ket != null) sp.Children.Add(new TextBlock { Text = ket, Style = (Style)FindResource("TeksRedup"), FontSize = 12 });
+        return new Border { Style = (Style)FindResource("Kartu"), Child = sp, MinWidth = 190 };
     }
 }

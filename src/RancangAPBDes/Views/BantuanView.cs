@@ -1,25 +1,25 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
+using System.Windows.Media;
 using RancangAPBDes.Core;
 
 namespace RancangAPBDes.Views;
 
-/// <summary>Petunjuk singkat pemakaian.</summary>
+/// <summary>Bantuan › Petunjuk Penggunaan.</summary>
 public class BantuanView : UserControl
 {
     public BantuanView()
     {
-        var sp = new StackPanel { Margin = new Thickness(0, 0, 8, 16), MaxWidth = 900, HorizontalAlignment = HorizontalAlignment.Left };
-        sp.Children.Add(new TextBlock { Text = "Petunjuk Singkat", Style = (Style)Application.Current.FindResource("Judul") });
+        var sp = new StackPanel { Margin = new Thickness(16, 12, 16, 16), MaxWidth = 860, HorizontalAlignment = HorizontalAlignment.Left };
+        sp.Children.Add(new TextBlock { Text = "Petunjuk Penggunaan", Style = (Style)Application.Current.FindResource("Judul") });
 
         void Bagian(string judul, params string[] butir)
         {
             sp.Children.Add(new TextBlock { Text = judul, Style = (Style)Application.Current.FindResource("SubJudul") });
             foreach (var b in butir)
             {
-                var g = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
+                var g = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 g.Children.Add(new TextBlock { Text = "•", FontWeight = FontWeights.Bold });
                 var t = new TextBlock { Text = b, TextWrapping = TextWrapping.Wrap };
@@ -31,53 +31,53 @@ public class BantuanView : UserControl
 
         Bagian("Tujuan aplikasi",
             "Rancang APBDes dipakai untuk menyusun dan mencoba-coba rencana anggaran desa saat musyawarah, SEBELUM diinput dan diposting di Siskeudes.",
-            "Aplikasi ini tidak terhubung ke Siskeudes dan tidak mengubah data Siskeudes. Hasil yang sudah disepakati diketik ulang ke Siskeudes memakai laporan \"Daftar Siap Input Siskeudes\".",
-            "Bekerja penuh tanpa internet.");
+            "Aplikasi ini tidak terhubung ke Siskeudes dan tidak mengubah data Siskeudes. Penatausahaan (SPP, pencairan, dll.) tetap dilakukan di Siskeudes.",
+            "Bekerja penuh tanpa internet. Semua perubahan tersimpan otomatis.");
 
-        Bagian("Urutan kerja yang disarankan",
-            "1. Data Desa: isi nama desa, kode desa (seperti di Siskeudes, mis. 04.2002), dan daftar perangkat/pelaksana.",
-            "2. Referensi & Aturan: cocokkan kode rekening, sumber dana, dan referensi kegiatan dengan Siskeudes. Bisa impor dari Excel.",
-            "3. Pendapatan & Pembiayaan: isi perkiraan pendapatan per sumber dana (DDS, ADD, PBH, PAD, dll.) serta SiLPA.",
-            "4. Belanja: pilih sub bidang → + Kegiatan → isi paket → isi rincian RAB (volume × harga satuan).",
-            "5. Ringkasan: lihat sisa dana per sumber dana, keseimbangan APBDes, hasil cek aturan, dan peringatan.",
-            "6. Pratinjau & Cetak / Ekspor Excel: bagikan hasil ke peserta musyawarah, lalu jadikan dasar input Siskeudes.");
+        Bagian("Urutan kerja (sama seperti Siskeudes)",
+            "1. Data Entri › Data Umum Desa: nama desa, kepala desa, dan daftar Pelaksana Kegiatan (PKA).",
+            "2. Data Entri › Penganggaran › Isian Data Anggaran (F3):",
+            "    • Kegiatan: Bidang › Sub Bidang › Kegiatan › Paket Kegiatan.",
+            "    • Pendapatan: RAP (pilih rekening) › RAP Rinci (uraian, volume, satuan, harga, sumber dana).",
+            "    • Belanja: Kegiatan › Paket › RAB (pilih rekening) › RAB Rinci.",
+            "    • Pembiayaan 1 (penerimaan, mis. SiLPA) dan Pembiayaan 2 (pengeluaran, mis. penyertaan modal).",
+            "3. Beranda: lihat sisa dana per sumber dana, keseimbangan APBDes, dan peringatan.",
+            "4. Data Entri › Penganggaran › Posting APBDes: kunci skenario yang sudah disepakati.",
+            "5. Laporan: cetak/PDF atau ekspor Excel, termasuk Daftar Siap Input Siskeudes.");
 
-        Bagian("Skenario – bebas mencoba",
-            "Satu tahun anggaran boleh punya beberapa skenario, misalnya \"Usulan Kepala Desa\", \"Hasil Musdes\", \"Alternatif DD turun 10%\".",
-            "Gunakan Skenario ▸ Salin skenario ini sebelum mencoba perubahan besar. Skenario asli tetap aman.",
-            "Bandingkan Skenario menunjukkan apa saja yang berubah antara dua skenario.",
-            "Setelah disepakati, pilih Skenario ▸ Tandai FINAL agar tidak berubah tanpa sengaja.");
+        Bagian("Cara mengisi tabel",
+            "Pilih baris di tabel, isinya tampil lengkap di bawah tabel.",
+            "Tambah (Insert) untuk data baru, Ubah (F2 atau klik dua kali) untuk mengubah, Hapus (Delete) untuk menghapus.",
+            "Saat mengisi, tekan Simpan (Ctrl+S) untuk menyimpan atau Batal (Esc) untuk membatalkan.",
+            "Tombol … di samping kode membuka daftar pilihan yang bisa dicari (rekening, referensi kegiatan).",
+            "Angka desimal memakai koma, contoh 2,5. Arahkan kursor ke teks yang terpotong untuk melihat isi lengkapnya.");
+
+        Bagian("Simulasi dengan skenario",
+            "Satu tahun anggaran boleh punya beberapa skenario, misalnya \"Usulan Kades\", \"Hasil Musdes\", \"Alternatif DD turun\".",
+            "Simulasi › Salin Skenario Ini sebelum mencoba perubahan besar; skenario asli tetap aman.",
+            "Simulasi › Bandingkan Skenario menampilkan Semula – Menjadi – Bertambah/(Berkurang).",
+            "↶ Batalkan (Ctrl+Z) dan ↷ Ulangi (Ctrl+Y) untuk mengembalikan perubahan.");
 
         Bagian("Keamanan data",
-            "Semua perubahan tersimpan otomatis ke file .apbdes (default di folder Dokumen\\Rancang APBDes).",
-            "Tombol ↶ Batalkan (Ctrl+Z) mengembalikan perubahan terakhir; ↷ Ulangi (Ctrl+Y) memajukannya lagi.",
-            "Setiap kali file dibuka, salinan cadangan otomatis dibuat (30 terakhir disimpan). Lihat File ▸ Buka folder cadangan otomatis.",
-            "Untuk dibawa ke komputer lain, pakai File ▸ Simpan salinan sebagai… lalu buka file itu di komputer tujuan.");
+            "File data .apbdes tersimpan di Dokumen\\Rancang APBDes (bisa dipindah lewat File › Simpan Salinan Sebagai).",
+            "Setiap kali file dibuka, cadangan otomatis dibuat (30 terakhir disimpan): File › Buka Folder Cadangan Otomatis.");
 
         Bagian("Tampilan untuk rapat",
-            "A+ / A− (atau Ctrl + roda mouse) memperbesar/memperkecil tulisan. Ctrl+0 kembali ke 100%.",
-            "Layar Penuh (F11) cocok untuk ditampilkan ke proyektor. Tekan F11 atau Esc untuk keluar.",
-            "Mengubah isi tabel: klik dua kali sel (atau tekan F2), ketik, lalu Enter. Desimal memakai koma, contoh 2,5.");
+            "Tampilan › Perbesar / Perkecil (Ctrl + roda mouse), Ctrl+0 kembali ke 100%.",
+            "Tampilan › Layar Penuh (F11) untuk proyektor; tekan F11 atau Esc untuk keluar.");
 
         sp.Children.Add(new TextBlock
         {
-            Text = $"Lokasi log (untuk melaporkan masalah): {Log.FilePath}",
+            Text = $"Versi {typeof(BantuanView).Assembly.GetName().Version}  ·  Log: {Log.FilePath}",
             Style = (Style)Application.Current.FindResource("TeksRedup"),
             Margin = new Thickness(0, 16, 0, 0),
-            FontSize = 13
-        });
-        sp.Children.Add(new TextBlock
-        {
-            Text = $"Versi {typeof(BantuanView).Assembly.GetName().Version}",
-            Style = (Style)Application.Current.FindResource("TeksRedup"),
-            FontSize = 13
+            FontSize = 12
         });
 
-        Content = new ScrollViewer
+        Content = new Border
         {
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Content = sp
+            Background = Brushes.White, BorderBrush = (Brush)Application.Current.FindResource("Garis"), BorderThickness = new Thickness(1),
+            Child = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = sp }
         };
     }
 }

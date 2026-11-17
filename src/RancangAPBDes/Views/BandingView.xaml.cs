@@ -38,7 +38,7 @@ public partial class BandingView : UserControl
         if (!IsLoaded) return;
         if (CmbA.SelectedItem is not SkenarioInfo a || CmbB.SelectedItem is not SkenarioInfo b)
         {
-            if (sender is Button) Pesan.Info("Pilih skenario A dan skenario B terlebih dahulu.");
+            if (sender is Button) Pesan.Info("Pilih skenario Semula dan Menjadi terlebih dahulu.");
             return;
         }
         S.SimpanSegera();
@@ -78,7 +78,7 @@ public partial class BandingView : UserControl
             list.Add(new BarisBanding
             {
                 Kelompok = g2, Kode = k, Uraian = (xb ?? xa)!.Nama, A = xa?.Dipakai ?? 0, B = xb?.Dipakai ?? 0,
-                Keterangan = $"Pagu A {Rp(xa?.Pagu ?? 0)} · B {Rp(xb?.Pagu ?? 0)}"
+                Keterangan = $"Pagu semula {Rp(xa?.Pagu ?? 0)} · menjadi {Rp(xb?.Pagu ?? 0)}"
             });
         }
 
@@ -96,8 +96,8 @@ public partial class BandingView : UserControl
             var la = ka.GetValueOrDefault(k);
             var lb = kb.GetValueOrDefault(k);
             var nama = (lb ?? la)!.First().Nama;
-            var ket = la == null ? "Kegiatan baru di B" : lb == null ? "Tidak ada di B" :
-                !string.Equals(la.First().Nama, lb.First().Nama, StringComparison.OrdinalIgnoreCase) ? $"Nama di A: {la.First().Nama}" : "";
+            var ket = la == null ? "Kegiatan baru" : lb == null ? "Dihapus" :
+                !string.Equals(la.First().Nama, lb.First().Nama, StringComparison.OrdinalIgnoreCase) ? $"Nama semula: {la.First().Nama}" : "";
             list.Add(new BarisBanding
             {
                 Kelompok = g4, Kode = k, Uraian = nama,

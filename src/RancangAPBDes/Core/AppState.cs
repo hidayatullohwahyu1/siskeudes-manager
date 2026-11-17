@@ -136,6 +136,14 @@ public sealed class AppState : Bindable
 
     public static T SalinDalam<T>(T obj) where T : class => Deserialize<T>(Serialize(obj))!;
 
+    /// <summary>Salinan lengkap objek apa pun (untuk form isian).</summary>
+    public static object SalinObjek(object obj)
+    {
+        var t = obj.GetType();
+        using (ChangeTracker.Suspend())
+            return JsonSerializer.Deserialize(JsonSerializer.Serialize(obj, t, JsonOpsi), t, JsonOpsi)!;
+    }
+
     // ------------------------------------------------------------------ file
 
     public bool BukaFile(string path)
@@ -179,6 +187,28 @@ public sealed class AppState : Bindable
             Log.Error(ex, "Muat referensi");
             Pesan.Galat("Referensi di file ini tidak terbaca. Referensi dikembalikan ke bawaan.", ex);
             refr = DefaultReferensi.Buat();
+        }
+
+        // Versi 1 memakai kode contoh yang keliru (01.01, 5.1.2.01, …): ganti dengan referensi resmi.
+        try
+        {
+            if (db.GetMeta("versi_referensi") != "2")
+            {
+                var baru = DefaultReferensi.Buat();
+                using (ChangeTracker.Suspend())
+                {
+                    refr.Bidang = baru.Bidang;
+                    refr.SubBidang = baru.SubBidang;
+                    refr.Rekening = baru.Rekening;
+                    refr.Kegiatan = baru.Kegiatan;
+                    DefaultReferensi.Lengkapi(refr);
+                }
+                db.SetMeta("versi_referensi", "2");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Migrasi referensi");
         }
 
         Desa = desa;
@@ -414,10 +444,10 @@ public sealed class AppState : Bindable
         try
         {
             Lookup.Bangun(Referensi);
-            Isi(RekeningPendapatan, Referensi.Rekening.Where(r => r.Kode.StartsWith("4")).OrderBy(r => r.Kode, KodeComparer.Instance));
-            Isi(RekeningBelanja, Referensi.Rekening.Where(r => r.Kode.StartsWith("5")).OrderBy(r => r.Kode, KodeComparer.Instance));
-            Isi(RekeningPenerimaanPembiayaan, Referensi.Rekening.Where(r => r.Kode.StartsWith("6.1")).OrderBy(r => r.Kode, KodeComparer.Instance));
-            Isi(RekeningPengeluaranPembiayaan, Referensi.Rekening.Where(r => r.Kode.StartsWith("6.2")).OrderBy(r => r.Kode, KodeComparer.Instance));
+            Isi(RekeningPendapatan, Referensi.Rekening.Where(r => Rinci(r.Kode, "4")).OrderBy(r => r.Kode, KodeComparer.Instance));
+            Isi(RekeningBelanja, Referensi.Rekening.Where(r => Rinci(r.Kode, "5")).OrderBy(r => r.Kode, KodeComparer.Instance));
+            Isi(RekeningPenerimaanPembiayaan, Referensi.Rekening.Where(r => Rinci(r.Kode, "6.1")).OrderBy(r => r.Kode, KodeComparer.Instance));
+            Isi(RekeningPengeluaranPembiayaan, Referensi.Rekening.Where(r => Rinci(r.Kode, "6.2")).OrderBy(r => r.Kode, KodeComparer.Instance));
             Isi(DaftarSumberDana, Referensi.SumberDana.Where(s => s.Kode != ""));
             Isi(DaftarSatuan, Referensi.Satuan.Select(s => s.Nama).Where(s => s != "").Distinct(StringComparer.OrdinalIgnoreCase));
             PerbaruiPelaksana();
@@ -432,11 +462,13 @@ public sealed class AppState : Bindable
         Hitung();
     }
 
+    static bool Rinci(string kode, string awalan) => kode.Split('.').Length == 4 && Batas.Cocok(kode, awalan);
+
     public void PerbaruiPelaksana()
     {
         var nama = Desa.Perangkat
             .Where(p => !string.IsNullOrWhiteSpace(p.Nama))
-            .Select(p => string.IsNullOrWhiteSpace(p.Jabatan) ? p.Nama.Trim() : $"{p.Nama.Trim()} ({p.Jabatan.Trim()})")
+            .Select(p => p.Nama.Trim())
             .Distinct();
         Isi(DaftarPelaksana, nama);
     }

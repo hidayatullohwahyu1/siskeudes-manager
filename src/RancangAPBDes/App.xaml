@@ -6,26 +6,31 @@
         <FontFamily x:Key="FontUtama">Segoe UI, Tahoma, Arial</FontFamily>
         <BooleanToVisibilityConverter x:Key="BoolKeVis"/>
 
-        <SolidColorBrush x:Key="Primer" Color="#1E5AA8"/>
-        <SolidColorBrush x:Key="PrimerGelap" Color="#163F75"/>
-        <SolidColorBrush x:Key="PrimerMuda" Color="#E6EEF9"/>
-        <SolidColorBrush x:Key="LatarApp" Color="#F3F5F8"/>
-        <SolidColorBrush x:Key="Garis" Color="#C9D1DC"/>
-        <SolidColorBrush x:Key="GarisTegas" Color="#98A4B5"/>
-        <SolidColorBrush x:Key="TeksUtama" Color="#1A1F27"/>
-        <SolidColorBrush x:Key="WarnaRedup" Color="#4F5866"/>
+        <SolidColorBrush x:Key="Primer" Color="#1F5FAD"/>
+        <SolidColorBrush x:Key="PrimerGelap" Color="#17497F"/>
+        <SolidColorBrush x:Key="PrimerMuda" Color="#E8F0FA"/>
+        <SolidColorBrush x:Key="LatarApp" Color="#EEF1F5"/>
+        <SolidColorBrush x:Key="Garis" Color="#CDD4DE"/>
+        <SolidColorBrush x:Key="GarisTegas" Color="#A3AEBD"/>
+        <SolidColorBrush x:Key="TeksUtama" Color="#1B2430"/>
+        <SolidColorBrush x:Key="WarnaRedup" Color="#556070"/>
         <SolidColorBrush x:Key="Merah" Color="#B42318"/>
         <SolidColorBrush x:Key="MerahMuda" Color="#FDECEA"/>
         <SolidColorBrush x:Key="Hijau" Color="#1A7F37"/>
-        <SolidColorBrush x:Key="HijauMuda" Color="#E7F5EC"/>
-        <SolidColorBrush x:Key="Kuning" Color="#8A5A00"/>
-        <SolidColorBrush x:Key="KuningMuda" Color="#FFF4D6"/>
+        <SolidColorBrush x:Key="HijauMuda" Color="#E6F4EA"/>
+        <SolidColorBrush x:Key="Kuning" Color="#7A4F00"/>
+        <SolidColorBrush x:Key="KuningMuda" Color="#FFF5D9"/>
+        <LinearGradientBrush x:Key="LatarKepalaForm" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#2A6CB8" Offset="0"/>
+            <GradientStop Color="#1F5FAD" Offset="1"/>
+        </LinearGradientBrush>
 
         <!-- ================= Tombol ================= -->
         <Style TargetType="Button">
-            <Setter Property="Padding" Value="12,5"/>
-            <Setter Property="MinHeight" Value="34"/>
-            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="MinWidth" Value="64"/>
+            <Setter Property="Margin" Value="0,0,4,4"/>
             <Setter Property="Background" Value="White"/>
             <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
             <Setter Property="BorderBrush" Value="{StaticResource GarisTegas}"/>
@@ -37,25 +42,24 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#E6EEF9"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1E5AA8"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#E8F0FA"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1F5FAD"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#CFDDF2"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#D2E1F4"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1E5AA8"/>
-                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1F5FAD"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.42"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -67,28 +71,23 @@
             <Setter Property="Background" Value="{StaticResource Primer}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="{StaticResource PrimerGelap}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#163F75"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#17497F"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#0F2E57"/>
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0F2E57"/>
-                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#0F3560"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.45"/>
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.42"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -98,65 +97,87 @@
 
         <Style x:Key="TombolBahaya" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Foreground" Value="{StaticResource Merah}"/>
-            <Setter Property="BorderBrush" Value="#E3A39C"/>
+        </Style>
+
+        <!-- Tombol datar di bilah alat -->
+        <Style x:Key="TombolAlat" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
         </Style>
 
         <!-- ================= Isian ================= -->
         <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="MinHeight" Value="26"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="BorderBrush" Value="{StaticResource GarisTegas}"/>
             <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
             <Style.Triggers>
                 <Trigger Property="IsReadOnly" Value="True">
-                    <Setter Property="Background" Value="#F1F3F6"/>
+                    <Setter Property="Background" Value="#F4F6F9"/>
+                    <Setter Property="BorderBrush" Value="#D5DBE3"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="MinHeight" Value="32"/>
-            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="MinHeight" Value="26"/>
+            <Setter Property="Padding" Value="5,2"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="MaxDropDownHeight" Value="420"/>
+            <Setter Property="MaxDropDownHeight" Value="360"/>
         </Style>
 
         <Style TargetType="CheckBox">
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,4"/>
         </Style>
 
         <Style TargetType="ToolTip">
             <Setter Property="FontFamily" Value="{StaticResource FontUtama}"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="MaxWidth" Value="560"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="ContextMenu">
             <Setter Property="FontFamily" Value="{StaticResource FontUtama}"/>
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style TargetType="Menu">
+            <Setter Property="FontFamily" Value="{StaticResource FontUtama}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background" Value="White"/>
         </Style>
 
         <Style TargetType="MenuItem">
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="8,4"/>
         </Style>
 
         <Style TargetType="TabItem">
-            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Padding" Value="12,4"/>
         </Style>
 
         <!-- ================= Teks ================= -->
         <Style x:Key="Judul" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
         </Style>
         <Style x:Key="SubJudul" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontSize" Value="14.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,14,0,6"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
         </Style>
         <Style x:Key="TeksRedup" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource WarnaRedup}"/>
@@ -165,16 +186,16 @@
         <Style x:Key="Label" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,10,8"/>
+            <Setter Property="Margin" Value="0,0,8,6"/>
         </Style>
 
         <Style x:Key="Kartu" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="{StaticResource Garis}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="14,10"/>
-            <Setter Property="Margin" Value="0,0,12,12"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
         </Style>
 
         <!-- ================= Tabel ================= -->
@@ -188,25 +209,24 @@
             <Setter Property="SelectionMode" Value="Single"/>
             <Setter Property="SelectionUnit" Value="FullRow"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#E1E6ED"/>
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E3E7ED"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#EDF0F4"/>
             <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#F7F9FC"/>
+            <Setter Property="AlternatingRowBackground" Value="#F7F9FB"/>
             <Setter Property="BorderBrush" Value="{StaticResource Garis}"/>
             <Setter Property="Background" Value="White"/>
-            <Setter Property="MinRowHeight" Value="34"/>
+            <Setter Property="MinRowHeight" Value="25"/>
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-            <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel"/>
             <Setter Property="ClipboardCopyMode" Value="IncludeHeader"/>
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#E8EDF4"/>
+            <Setter Property="Background" Value="#E6EBF2"/>
             <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="6,4"/>
             <Setter Property="BorderBrush" Value="{StaticResource Garis}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -220,7 +240,7 @@
         </Style>
 
         <Style TargetType="DataGridCell">
-            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Padding" Value="6,3"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -235,13 +255,9 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#D6E4F5"/>
+                    <Setter Property="Background" Value="#CFE0F5"/>
                     <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
-                    <Setter Property="BorderBrush" Value="#D6E4F5"/>
-                </Trigger>
-                <Trigger Property="IsEditing" Value="True">
-                    <Setter Property="Padding" Value="2"/>
-                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#CFE0F5"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -256,18 +272,6 @@
         </Style>
         <Style x:Key="SelAngkaTebal" TargetType="TextBlock" BasedOn="{StaticResource SelAngka}">
             <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-        <Style x:Key="EditTeks" TargetType="TextBox">
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="4,3"/>
-            <Setter Property="MinHeight" Value="28"/>
-        </Style>
-        <Style x:Key="EditAngka" TargetType="TextBox">
-            <Setter Property="TextAlignment" Value="Right"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="4,3"/>
-            <Setter Property="MinHeight" Value="28"/>
         </Style>
     </Application.Resources>
 </Application>

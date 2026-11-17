@@ -22,7 +22,7 @@ public static class Laporan
     static string KodeRek(string k) => string.IsNullOrWhiteSpace(k) ? "" : k + ".";
 
     public static string KodeLengkap(DataDesa desa, string kode) =>
-        (string.IsNullOrWhiteSpace(desa.KodeDesa) ? kode : desa.KodeDesa + "." + kode) + ".";
+        kode + ".";
 
     public static FlowDocument Buat(string jenis, DataDesa desa, SkenarioInfo info, DataSkenario data, HasilHitung hasil)
     {
@@ -297,8 +297,6 @@ public static class Laporan
     {
         doc.Blocks.Add(Teks("Urutan mengikuti menu Siskeudes: Data Entri ▸ Penganggaran ▸ Isian Data Anggaran. " +
                             "Centang (✓) setiap baris yang sudah diketik ke Siskeudes.", 12));
-        if (string.IsNullOrWhiteSpace(desa.KodeDesa))
-            doc.Blocks.Add(new Paragraph(new Run("Kode desa belum diisi di halaman Data Desa, sehingga kode kegiatan ditulis tanpa awalan kode desa.")) { Foreground = Merah });
 
         void Rincian(string judul, IEnumerable<RincianAnggaran> items)
         {

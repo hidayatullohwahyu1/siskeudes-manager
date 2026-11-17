@@ -189,8 +189,8 @@ public static class Kalkulasi
         foreach (var a in refr.Aturan.Where(a => a.Aktif))
         {
             decimal nilai = belanjaRows
-                .Where(x => a.AwalanSubBidang == "" || x.K.KodeSubBidang.StartsWith(a.AwalanSubBidang, StringComparison.OrdinalIgnoreCase))
-                .Where(x => a.AwalanRekening == "" || x.R.KodeRekening.StartsWith(a.AwalanRekening, StringComparison.OrdinalIgnoreCase))
+                .Where(x => Batas.Cocok(x.K.KodeSubBidang, a.AwalanSubBidang))
+                .Where(x => Batas.Cocok(x.R.KodeRekening, a.AwalanRekening))
                 .Where(x => a.SumberDana == "" || string.Equals(x.Sd, a.SumberDana, StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.R.Jumlah);
             bool pakaiPagu = a.Dasar == "Pagu Sumber Dana" && a.SumberDana != "";
@@ -229,7 +229,9 @@ public static class Kalkulasi
             tambah("Perhatian", $"{tempat}: \"{u}\" belum dipilih kode rekeningnya.");
         else if (!Lookup.AdaRekening(r.KodeRekening))
             tambah("Perhatian", $"{tempat}: kode rekening {r.KodeRekening} untuk \"{u}\" tidak ada di referensi.");
-        else if (!r.KodeRekening.StartsWith(awalanRek, StringComparison.Ordinal))
+        else if (r.KodeRekening.Split('.').Length != 4)
+            tambah("Perhatian", $"{tempat}: kode {r.KodeRekening} bukan rekening rincian (harus 4 tingkat, mis. 5.2.1.01).");
+        else if (!Batas.Cocok(r.KodeRekening, awalanRek))
             tambah("Perhatian", $"{tempat}: kode rekening {r.KodeRekening} untuk \"{u}\" bukan kelompok {awalanRek}.");
         if (r.Jumlah == 0)
             tambah("Perhatian", $"{tempat}: \"{u}\" bernilai Rp 0.");

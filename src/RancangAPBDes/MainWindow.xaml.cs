@@ -1,9 +1,9 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using RancangAPBDes.Core;
 using RancangAPBDes.Views;
@@ -17,15 +17,22 @@ public partial class MainWindow : Window
     WindowState _stateSebelumPenuh;
     bool _layarPenuh;
 
+    public static readonly string[] DaftarHalaman = { "beranda", "isian", "banding", "desa", "parameter", "bantuan" };
+
     public MainWindow()
     {
         InitializeComponent();
         TerapkanZoom(S.Pengaturan.Zoom);
-        S.HasilBerubah += PerbaruiSisaAnggaran;
+        S.HasilBerubah += PerbaruiStatus;
+        S.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(AppState.SkenarioAktif) or nameof(AppState.SkenarioFinal) or nameof(AppState.BisaUbah)) PerbaruiStatus();
+        };
         PreviewKeyDown += SaatTombol;
         PreviewMouseWheel += SaatRoda;
         Loaded += (_, _) =>
         {
+            PerbaruiStatus();
             if (!AppState.ModeUji && WindowState != WindowState.Maximized && SystemParameters.WorkArea.Width < 1500)
                 WindowState = WindowState.Maximized;
         };
@@ -39,16 +46,14 @@ public partial class MainWindow : Window
             .Where(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p))
             .Cast<string>();
         foreach (var f in kandidat)
-            if (S.BukaFile(f)) { Nav.SelectedIndex = 0; return; }
+            if (S.BukaFile(f)) { Buka("beranda"); return; }
 
         var def = Path.Combine(Folder.DokumenDefault, "Data APBDes.apbdes");
-        if (File.Exists(def) && S.BukaFile(def)) { Nav.SelectedIndex = 0; return; }
+        if (File.Exists(def) && S.BukaFile(def)) { Buka("beranda"); return; }
+        if (!File.Exists(def) && S.BukaFile(def)) { Buka("desa"); TampilkanSelamatDatang(def); return; }
 
-        if (!File.Exists(def) && S.BukaFile(def)) { Nav.SelectedIndex = 4; TampilkanSelamatDatang(def); return; }
-
-        // Upaya terakhir: file baru di folder data aplikasi
         var cadangan = Path.Combine(Folder.DataAplikasi, $"Data APBDes {DateTime.Now:yyyyMMdd_HHmmss}.apbdes");
-        if (S.BukaFile(cadangan)) Nav.SelectedIndex = 4;
+        if (S.BukaFile(cadangan)) Buka("desa");
     }
 
     void TampilkanSelamatDatang(string path)
@@ -56,98 +61,74 @@ public partial class MainWindow : Window
         Pesan.Info("Selamat datang di Rancang APBDes.\n\n" +
                    "File data baru sudah dibuat di:\n" + path + "\n\n" +
                    "Langkah awal:\n" +
-                   "1. Isi Data Desa (nama, kode desa, perangkat).\n" +
-                   "2. Cocokkan Referensi (kode rekening, sumber dana) dengan Siskeudes.\n" +
-                   "3. Isi Pendapatan, lalu susun Belanja per kegiatan.\n\n" +
+                   "1. Data Entri › Data Umum Desa: isi nama desa dan pelaksana kegiatan.\n" +
+                   "2. Data Entri › Penganggaran › Isian Data Anggaran: isi Pendapatan, Kegiatan, lalu Belanja (RAB).\n" +
+                   "3. Laporan: lihat Ringkasan, cetak, atau ekspor ke Excel.\n\n" +
                    "Semua perubahan tersimpan otomatis.");
     }
 
     // ------------------------------------------------------------ navigasi
 
-    void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    public FrameworkElement Buka(string kunci)
     {
-        if (Nav.SelectedItem is not ListBoxItem item || item.Tag is not string kunci) return;
-        try
+        AkhiriIsian();
+        if (Isi.Content is ParameterView or DataDesaView) S.PerbaruiDaftarReferensi();
+        if (!_halaman.TryGetValue(kunci, out var h))
         {
-            if (Isi.Content is ReferensiView || Isi.Content is DesaView)
-                S.PerbaruiDaftarReferensi();
-            AkhiriEdit();
-            if (!_halaman.TryGetValue(kunci, out var h))
+            h = kunci switch
             {
-                h = kunci switch
-                {
-                    "ringkasan" => new RingkasanView(),
-                    "belanja" => new BelanjaView(),
-                    "pendapatan" => new PendapatanView(),
-                    "banding" => new BandingView(),
-                    "desa" => new DesaView(),
-                    "referensi" => new ReferensiView(),
-                    _ => new BantuanView(),
-                };
-                _halaman[kunci] = h;
-            }
-            Isi.Content = h;
+                "beranda" => new RingkasanView(),
+                "isian" => new IsianAnggaranView(),
+                "banding" => new BandingView(),
+                "desa" => new DataDesaView(),
+                "parameter" => new ParameterView(),
+                _ => new BantuanView(),
+            };
+            _halaman[kunci] = h;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Navigasi");
-            Pesan.Galat("Halaman tidak dapat dibuka.", ex);
-        }
+        Isi.Content = h;
+        return h;
     }
 
-    void AkhiriEdit()
+    /// <summary>Batalkan isian yang belum disimpan sebelum pindah halaman/skenario.</summary>
+    void AkhiriIsian()
     {
         if (Isi.Content is FrameworkElement fe)
-            foreach (var g in UiBantu.Turunan<DataGrid>(fe))
-            {
-                try { g.CommitEdit(DataGridEditingUnit.Row, true); } catch { g.CancelEdit(); }
-            }
+            foreach (var h in UiBantu.Turunan<HalamanData>(fe))
+                if (h.SedangMengisi)
+                {
+                    if (Pesan.Tanya($"Isian \"{h.JudulData}\" belum disimpan. Simpan sekarang?")) { if (!h.Simpan()) h.Batal(); }
+                    else h.Batal();
+                }
     }
 
-    // ------------------------------------------------------------ bilah alat
+    void Beranda_Click(object sender, RoutedEventArgs e) => Buka("beranda");
+    void Isian_Click(object sender, RoutedEventArgs e) => Buka("isian");
+    void Banding_Click(object sender, RoutedEventArgs e) => Buka("banding");
+    void DataUmum_Click(object sender, RoutedEventArgs e) => ((DataDesaView)Buka("desa")).BukaTab(0);
+    void Pelaksana_Click(object sender, RoutedEventArgs e) => ((DataDesaView)Buka("desa")).BukaTab(1);
+    void Bantuan_Click(object sender, RoutedEventArgs e) => Buka("bantuan");
 
-    void Skenario_Click(object sender, RoutedEventArgs e)
+    void Parameter_Click(object sender, RoutedEventArgs e)
     {
-        var m = new ContextMenu { PlacementTarget = BtnSkenario, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        var aktif = S.SkenarioAktif;
-        m.Items.Add(Menu("Skenario baru (kosong)…", () => BuatSkenario(false)));
-        m.Items.Add(Menu("Salin skenario ini…", () => BuatSkenario(true), aktif != null));
-        m.Items.Add(Menu("Ganti nama…", GantiNama, aktif != null));
-        m.Items.Add(new Separator());
-        if (aktif?.IsFinal == true)
-            m.Items.Add(Menu("Buka kunci (kembali ke Draft)", () => { AkhiriEdit(); S.SetFinal(aktif, false); }));
-        else
-            m.Items.Add(Menu("Tandai FINAL – siap diinput ke Siskeudes", () =>
-            {
-                AkhiriEdit();
-                if (Pesan.Tanya($"Kunci skenario \"{aktif!.Nama}\" sebagai FINAL?\n\nSkenario final tidak bisa diubah sampai kuncinya dibuka kembali."))
-                    S.SetFinal(aktif, true);
-            }, aktif != null));
-        m.Items.Add(new Separator());
-        m.Items.Add(Menu("Hapus skenario ini…", HapusSkenario, aktif != null));
-        m.IsOpen = true;
+        var tab = int.TryParse((sender as FrameworkElement)?.Tag as string, out var i) ? i : 0;
+        ((ParameterView)Buka("parameter")).BukaTab(tab);
     }
 
-    static MenuItem Menu(string teks, Action aksi, bool aktif = true)
-    {
-        var mi = new MenuItem { Header = teks, IsEnabled = aktif };
-        mi.Click += (_, _) =>
-        {
-            try { aksi(); }
-            catch (Exception ex) { Log.Error(ex, teks); Pesan.Galat("Perintah gagal dijalankan.", ex); }
-        };
-        return mi;
-    }
+    // ------------------------------------------------------------ skenario
+
+    void SkenarioBaru_Click(object sender, RoutedEventArgs e) => BuatSkenario(false);
+    void SkenarioSalin_Click(object sender, RoutedEventArgs e) => BuatSkenario(true);
 
     void BuatSkenario(bool salin)
     {
-        AkhiriEdit();
+        if (salin && S.SkenarioAktif == null) return;
+        AkhiriIsian();
         var d = new DialogSkenario(salin, S.SkenarioAktif) { Owner = this };
-        if (d.ShowDialog() == true)
-            S.BuatSkenario(d.NamaSkenario, d.Tahun, salin);
+        if (d.ShowDialog() == true) S.BuatSkenario(d.NamaSkenario, d.Tahun, salin);
     }
 
-    void GantiNama()
+    void SkenarioNama_Click(object sender, RoutedEventArgs e)
     {
         var a = S.SkenarioAktif;
         if (a == null) return;
@@ -155,23 +136,64 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(nama)) S.GantiNama(a, nama);
     }
 
-    void HapusSkenario()
+    void SkenarioHapus_Click(object sender, RoutedEventArgs e)
     {
         var a = S.SkenarioAktif;
         if (a == null) return;
-        if (!Pesan.Tanya($"Hapus skenario \"{a.Nama}\" (tahun {a.Tahun})?\n\nSkenario yang dihapus tidak bisa dibatalkan dengan tombol Batalkan, " +
-                         "tetapi masih ada di file cadangan otomatis (File ▸ Buka Folder Cadangan).")) return;
-        AkhiriEdit();
+        if (!Pesan.Tanya($"Hapus skenario \"{a.Nama}\" (tahun {a.Tahun})?\n\nSkenario yang dihapus tidak bisa dikembalikan dengan Batalkan, " +
+                         "tetapi masih ada di cadangan otomatis (File › Buka Folder Cadangan Otomatis).")) return;
+        AkhiriIsian();
         S.HapusSkenario(a);
     }
 
-    void Batalkan_Click(object sender, RoutedEventArgs e) { AkhiriEdit(); S.Batalkan(); }
-    void Ulangi_Click(object sender, RoutedEventArgs e) { AkhiriEdit(); S.Ulangi(); }
+    void Posting_Click(object sender, RoutedEventArgs e)
+    {
+        var a = S.SkenarioAktif;
+        if (a == null) return;
+        AkhiriIsian();
+        if (a.IsFinal)
+        {
+            if (Pesan.Tanya($"Batalkan posting skenario \"{a.Nama}\" sehingga bisa diubah kembali?")) S.SetFinal(a, false);
+            return;
+        }
+        S.Hitung();
+        var salah = S.Hasil?.JumlahKesalahan ?? 0;
+        var peringatan = salah > 0 ? $"\n\nPerhatian: masih ada {salah} kesalahan di Beranda (mis. belanja melebihi pagu)." : "";
+        if (Pesan.Tanya($"Posting skenario \"{a.Nama}\" sebagai hasil kesepakatan?\n\nSkenario yang sudah diposting dikunci dan siap diinput ke Siskeudes.{peringatan}"))
+            S.SetFinal(a, true);
+    }
+
+    void PerbaruiStatus()
+    {
+        var a = S.SkenarioAktif;
+        MenuPosting.Header = a?.IsFinal == true ? "Batalkan Posting APBDes…" : "Posting APBDes (kunci skenario)…";
+        if (a == null) { LencanaStatus.Visibility = Visibility.Collapsed; }
+        else
+        {
+            LencanaStatus.Visibility = Visibility.Visible;
+            TxtStatus.Text = a.IsFinal ? "POSTING" : "DRAFT";
+            LencanaStatus.Background = (Brush)FindResource(a.IsFinal ? "HijauMuda" : "PrimerMuda");
+            TxtStatus.Foreground = (Brush)FindResource(a.IsFinal ? "Hijau" : "Primer");
+            LencanaStatus.ToolTip = a.IsFinal ? "Skenario sudah diposting (terkunci)" : "Skenario masih bisa diubah";
+        }
+
+        var h = S.Hasil;
+        if (h == null) { TxtSisaAnggaran.Text = ""; return; }
+        var v = h.SisaAnggaran;
+        TxtSisaAnggaran.Text = v == 0 ? "· Anggaran seimbang" : v > 0 ? $"· Belum dialokasikan {Kalkulasi.Rp(v)}" : $"· DEFISIT {Kalkulasi.Rp(-v)}";
+        TxtSisaAnggaran.Foreground = (Brush)FindResource(v < 0 ? "Merah" : "WarnaRedup");
+        TxtSisaAnggaran.FontWeight = v < 0 ? FontWeights.SemiBold : FontWeights.Normal;
+    }
+
+    void Batalkan_Click(object sender, RoutedEventArgs e) { AkhiriIsian(); S.Batalkan(); }
+    void Ulangi_Click(object sender, RoutedEventArgs e) { AkhiriIsian(); S.Ulangi(); }
+
+    // ------------------------------------------------------------ laporan
 
     void Ekspor_Click(object sender, RoutedEventArgs e)
     {
         if (S.Data == null || S.SkenarioAktif == null) return;
-        AkhiriEdit();
+        AkhiriIsian();
         S.SimpanSegera();
         S.Hitung();
         var dlg = new SaveFileDialog
@@ -207,27 +229,17 @@ public partial class MainWindow : Window
     void Cetak_Click(object sender, RoutedEventArgs e)
     {
         if (S.Data == null || S.SkenarioAktif == null) return;
-        AkhiriEdit();
+        AkhiriIsian();
         S.SimpanSegera();
         S.Hitung();
         new PratinjauWindow { Owner = this }.ShowDialog();
     }
 
-    void File_Click(object sender, RoutedEventArgs e)
-    {
-        var m = new ContextMenu { PlacementTarget = BtnFile, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        m.Items.Add(Menu("Buka file data…", BukaFile));
-        m.Items.Add(Menu("Buat file data baru…", FileBaru));
-        m.Items.Add(Menu("Simpan salinan sebagai… (mis. ke flashdisk)", SimpanSalinan, S.FilePath != null));
-        m.Items.Add(new Separator());
-        m.Items.Add(Menu("Buka folder file data", () => UiBantu.BukaFolder(Path.GetDirectoryName(S.FilePath ?? Folder.DokumenDefault)!)));
-        m.Items.Add(Menu("Buka folder cadangan otomatis", () => UiBantu.BukaFolder(Folder.Cadangan)));
-        m.IsOpen = true;
-    }
+    // ------------------------------------------------------------ file
 
-    void BukaFile()
+    void BukaFile_Click(object sender, RoutedEventArgs e)
     {
-        AkhiriEdit();
+        AkhiriIsian();
         var dlg = new OpenFileDialog
         {
             Filter = "File data Rancang APBDes (*.apbdes)|*.apbdes|Semua file (*.*)|*.*",
@@ -240,9 +252,9 @@ public partial class MainWindow : Window
         ResetHalaman();
     }
 
-    void FileBaru()
+    void FileBaru_Click(object sender, RoutedEventArgs e)
     {
-        AkhiriEdit();
+        AkhiriIsian();
         var dlg = new SaveFileDialog
         {
             Filter = "File data Rancang APBDes (*.apbdes)|*.apbdes",
@@ -254,12 +266,13 @@ public partial class MainWindow : Window
         var lama = S.FilePath;
         if (!S.BuatFileBaru(dlg.FileName) && lama != null && S.FilePath == null) S.BukaFile(lama);
         ResetHalaman();
-        Nav.SelectedIndex = 4;
+        Buka("desa");
     }
 
-    void SimpanSalinan()
+    void SimpanSalinan_Click(object sender, RoutedEventArgs e)
     {
-        AkhiriEdit();
+        if (S.FilePath == null) return;
+        AkhiriIsian();
         var dlg = new SaveFileDialog
         {
             Filter = "File data Rancang APBDes (*.apbdes)|*.apbdes",
@@ -284,16 +297,18 @@ public partial class MainWindow : Window
         }
     }
 
+    void FolderData_Click(object sender, RoutedEventArgs e) => UiBantu.BukaFolder(Path.GetDirectoryName(S.FilePath ?? Folder.DokumenDefault)!);
+    void FolderCadangan_Click(object sender, RoutedEventArgs e) => UiBantu.BukaFolder(Folder.Cadangan);
+    void Keluar_Click(object sender, RoutedEventArgs e) => Close();
+
     void ResetHalaman()
     {
-        var idx = Nav.SelectedIndex;
         _halaman.Clear();
         Isi.Content = null;
-        Nav.SelectedIndex = -1;
-        Nav.SelectedIndex = idx < 0 ? 0 : idx;
+        Buka("beranda");
     }
 
-    // ------------------------------------------------------------ zoom & layar penuh
+    // ------------------------------------------------------------ tampilan
 
     void TerapkanZoom(double z)
     {
@@ -308,7 +323,7 @@ public partial class MainWindow : Window
 
     void Perbesar_Click(object sender, RoutedEventArgs e) => TerapkanZoom(Skala.ScaleX + 0.1);
     void Perkecil_Click(object sender, RoutedEventArgs e) => TerapkanZoom(Skala.ScaleX - 0.1);
-
+    void Normal_Click(object sender, RoutedEventArgs e) => TerapkanZoom(1.0);
     void LayarPenuh_Click(object sender, RoutedEventArgs e) => AlihLayarPenuh();
 
     void AlihLayarPenuh()
@@ -332,19 +347,24 @@ public partial class MainWindow : Window
     void SaatTombol(object sender, KeyEventArgs e)
     {
         var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-        if (e.Key == Key.F11 || (e.Key == Key.Escape && _layarPenuh && Keyboard.FocusedElement is not TextBox))
+        if (e.Key == Key.F11) { AlihLayarPenuh(); e.Handled = true; return; }
+        if (e.Key == Key.Escape && _layarPenuh && Keyboard.FocusedElement is not TextBox) { AlihLayarPenuh(); e.Handled = true; return; }
+        if (!ctrl && Keyboard.FocusedElement is not TextBox)
         {
-            if (e.Key == Key.F11 || _layarPenuh) { AlihLayarPenuh(); e.Handled = true; }
+            if (e.Key == Key.F1) { Buka("bantuan"); e.Handled = true; }
+            else if (e.Key == Key.F3) { Buka("isian"); e.Handled = true; }
             return;
         }
         if (!ctrl) return;
         if (e.Key is Key.OemPlus or Key.Add) { TerapkanZoom(Skala.ScaleX + 0.1); e.Handled = true; }
         else if (e.Key is Key.OemMinus or Key.Subtract) { TerapkanZoom(Skala.ScaleX - 0.1); e.Handled = true; }
         else if (e.Key is Key.D0 or Key.NumPad0) { TerapkanZoom(1.0); e.Handled = true; }
+        else if (e.Key == Key.O) { BukaFile_Click(this, e); e.Handled = true; }
+        else if (e.Key == Key.P) { Cetak_Click(this, e); e.Handled = true; }
         else if (Keyboard.FocusedElement is not TextBox && Keyboard.FocusedElement is not ComboBox)
         {
-            if (e.Key == Key.Z) { AkhiriEdit(); S.Batalkan(); e.Handled = true; }
-            else if (e.Key == Key.Y) { AkhiriEdit(); S.Ulangi(); e.Handled = true; }
+            if (e.Key == Key.Z) { AkhiriIsian(); S.Batalkan(); e.Handled = true; }
+            else if (e.Key == Key.Y) { AkhiriIsian(); S.Ulangi(); e.Handled = true; }
         }
     }
 
@@ -355,26 +375,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    // ------------------------------------------------------------ status
-
-    void PerbaruiSisaAnggaran()
-    {
-        var h = S.Hasil;
-        if (h == null) { TxtSisaAnggaran.Text = ""; return; }
-        var v = h.SisaAnggaran;
-        TxtSisaAnggaran.Text = v == 0
-            ? "· Anggaran seimbang"
-            : v > 0 ? $"· Belum dialokasikan {Kalkulasi.Rp(v)}" : $"· DEFISIT {Kalkulasi.Rp(-v)}";
-        TxtSisaAnggaran.Foreground = v < 0 ? (System.Windows.Media.Brush)FindResource("Merah") : (System.Windows.Media.Brush)FindResource("WarnaRedup");
-        TxtSisaAnggaran.FontWeight = v < 0 ? FontWeights.SemiBold : FontWeights.Normal;
-    }
-
     protected override void OnClosing(CancelEventArgs e)
     {
-        AkhiriEdit();
+        AkhiriIsian();
         if (!S.SimpanSegera() &&
             !Pesan.Tanya("Sebagian perubahan GAGAL disimpan ke file (misalnya flashdisk terlepas).\n\n" +
-                         "Pilih \"No\" untuk kembali lalu simpan salinan ke lokasi lain lewat File ▸ Simpan salinan sebagai.\n" +
+                         "Pilih \"No\" untuk kembali lalu simpan salinan ke lokasi lain lewat File › Simpan Salinan Sebagai.\n" +
                          "Pilih \"Yes\" untuk tetap menutup (perubahan terakhir bisa hilang)."))
         {
             e.Cancel = true;

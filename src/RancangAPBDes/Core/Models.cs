@@ -9,6 +9,24 @@ static class Batas
     public static decimal Volume(decimal v) => Math.Clamp(v, 0m, MaksVolume);
     public static decimal Harga(decimal v) => Math.Clamp(v, 0m, MaksHarga);
     public static string Kode(string? k) => (k ?? "").Trim().TrimEnd('.').Trim();
+
+    /// <summary>Format kode bidang/sub bidang/kegiatan seperti cetakan Siskeudes: "01.01.1" → "1.1.01".</summary>
+    public static string KodeKeg(string? k)
+    {
+        var s = Kode(k);
+        if (s == "") return s;
+        var p = s.Split('.');
+        for (int i = 0; i < p.Length; i++)
+        {
+            if (!int.TryParse(p[i], out var n)) continue;
+            p[i] = i < 2 ? n.ToString() : n.ToString("00");
+        }
+        return string.Join('.', p);
+    }
+
+    /// <summary>Kode cocok dengan awalan per segmen ("2.3" cocok dengan "2.3" dan "2.3.01", tidak dengan "2.31").</summary>
+    public static bool Cocok(string kode, string awalan) =>
+        awalan == "" || kode == awalan || kode.StartsWith(awalan + ".", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Satu baris rincian anggaran (RAP Rinci / RAB Rinci / Pembiayaan).</summary>
@@ -53,6 +71,10 @@ public class RincianAnggaran : Model
     public string Keterangan { get => _ket; set => Set(ref _ket, value ?? ""); }
 
     public void RefreshNama() => OnPropertyChanged(nameof(NamaRekening));
+
+    int _no;
+    /// <summary>Nomor urut tampilan di dalam kelompok rekening (tidak disimpan).</summary>
+    [JsonIgnore] public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
 
     public RincianAnggaran Salin() => new()
     {
@@ -105,6 +127,10 @@ public class Paket : Model
 
     [JsonIgnore] public decimal Total => Rincian.Sum(r => r.Jumlah);
 
+    int _no;
+    /// <summary>Nomor urut tampilan (tidak disimpan).</summary>
+    [JsonIgnore] public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
+
     public void RaiseTotals() => OnPropertyChanged(nameof(Total));
 
     public Paket Salin()
@@ -128,14 +154,14 @@ public class Kegiatan : Model
     public string KodeSubBidang
     {
         get => _sub;
-        set { if (Set(ref _sub, Batas.Kode(value))) OnPropertyChanged(nameof(Kode)); }
+        set { if (Set(ref _sub, Batas.KodeKeg(value))) OnPropertyChanged(nameof(Kode)); }
     }
 
     int _no = 1;
     public int NoUrut
     {
         get => _no;
-        set { if (Set(ref _no, Math.Clamp(value, 1, 999))) OnPropertyChanged(nameof(Kode)); }
+        set { if (Set(ref _no, Math.Clamp(value, 0, 99))) OnPropertyChanged(nameof(Kode)); }
     }
 
     [JsonIgnore] public string Kode => $"{_sub}.{_no:00}";
@@ -299,7 +325,7 @@ public class RefSumberDana : Model
 public class RefBidang : Model
 {
     string _kode = "";
-    public string Kode { get => _kode; set => Set(ref _kode, Batas.Kode(value)); }
+    public string Kode { get => _kode; set => Set(ref _kode, Batas.KodeKeg(value)); }
     string _nama = "";
     public string Nama { get => _nama; set => Set(ref _nama, value ?? ""); }
 }
@@ -307,7 +333,7 @@ public class RefBidang : Model
 public class RefSubBidang : Model
 {
     string _kode = "";
-    public string Kode { get => _kode; set { if (Set(ref _kode, Batas.Kode(value))) OnPropertyChanged(nameof(Tampil)); } }
+    public string Kode { get => _kode; set { if (Set(ref _kode, Batas.KodeKeg(value))) OnPropertyChanged(nameof(Tampil)); } }
     string _nama = "";
     public string Nama { get => _nama; set { if (Set(ref _nama, value ?? "")) OnPropertyChanged(nameof(Tampil)); } }
     [JsonIgnore] public string KodeBidang => Kode.Split('.')[0];
@@ -317,7 +343,7 @@ public class RefSubBidang : Model
 public class RefKegiatan : Model
 {
     string _kode = "";
-    public string Kode { get => _kode; set => Set(ref _kode, Batas.Kode(value)); }
+    public string Kode { get => _kode; set => Set(ref _kode, Batas.KodeKeg(value)); }
     string _nama = "";
     public string Nama { get => _nama; set => Set(ref _nama, value ?? ""); }
     [JsonIgnore]
@@ -349,7 +375,7 @@ public class AturanBatas : Model
     decimal _persen;
     public decimal Persen { get => _persen; set => Set(ref _persen, Math.Clamp(value, 0m, 100m)); }
     string _sub = "";
-    public string AwalanSubBidang { get => _sub; set => Set(ref _sub, Batas.Kode(value)); }
+    public string AwalanSubBidang { get => _sub; set => Set(ref _sub, Batas.KodeKeg(value)); }
     string _rek = "";
     public string AwalanRekening { get => _rek; set => Set(ref _rek, Batas.Kode(value)); }
     string _sd = "";

@@ -131,7 +131,7 @@ public static class UjiOtomatis
 
         Kegiatan K(string sub, int no, string nama, string sd, params (string rek, string uraian, decimal vol, string sat, decimal harga)[] rinci)
         {
-            var k = new Kegiatan { KodeSubBidang = sub, NoUrut = no, Nama = nama, Lokasi = d.NamaDesa, Pelaksana = "Perangkat Satu (Kaur Perencanaan)", Keluaran = nama, SatuanKeluaran = "Kegiatan" };
+            var k = new Kegiatan { KodeSubBidang = sub, NoUrut = no, Nama = nama, Lokasi = d.NamaDesa, Pelaksana = "Perangkat Satu", Keluaran = nama, SatuanKeluaran = "Kegiatan" };
             var p = new Paket { Nama = nama, Pola = "Swakelola", Sifat = "Non Fisik", Satuan = "Paket" };
             p.SumberDana = sd;
             foreach (var x in rinci)
@@ -141,15 +141,16 @@ public static class UjiOtomatis
             return k;
         }
         K("01.01", 1, "Penyediaan Penghasilan Tetap dan Tunjangan Kepala Desa", "ADD",
-            ("5.1.1.01", "Penghasilan tetap kepala desa", 12, "OB (Orang/Bulan)", 3_714_500),
-            ("5.1.2.01", "Tunjangan kepala desa", 12, "OB (Orang/Bulan)", 1_000_000));
-        K("01.01", 4, "Penyediaan Operasional Pemerintah Desa (ATK, Honor PKPKD dan PPKD dll)", "ADD",
-            ("5.2.1.01", "Alat tulis kantor untuk pelayanan administrasi pemerintahan desa selama satu tahun penuh", 1, "Paket", 15_000_000),
-            ("5.2.5.01", "Langganan listrik kantor desa", 12, "Bulan", 450_000));
-        K("02.03", 1, "Pembangunan/Rehabilitasi/Peningkatan Jalan Desa Dusun Satu sampai Dusun Tiga beserta Drainase dan Talud", "DDS",
-            ("5.3.5.01", "Pengerasan jalan rabat beton panjang 250 m lebar 3 m tebal 15 cm", 112.5m, "M3", 1_450_000),
-            ("5.2.2.04", "Upah tukang dan pekerja", 180, "OH (Orang/Hari)", 120_000));
-        K("05.03", 1, "Bantuan Langsung Tunai Dana Desa", "DDS",
+            ("5.1.1.01", "Penghasilan tetap kepala desa", 12, "bulan", 3_714_500),
+            ("5.1.1.02", "Tunjangan jabatan kepala desa", 12, "bulan", 1_000_000));
+        K("1.1", 4, "Penyediaan Operasional Pemerintah Desa (ATK, Honor PKPKD dan PPKD dll)", "ADD",
+            ("5.2.1.01", "Alat tulis kantor untuk pelayanan administrasi pemerintahan desa selama satu tahun penuh", 1, "paket", 15_000_000),
+            ("5.2.5.01", "Langganan listrik kantor desa", 12, "bulan", 450_000));
+        K("2.3", 10, "Pembangunan/Rehabilitasi/Peningkatan Jalan Desa Dusun Satu sampai Dusun Tiga beserta Drainase dan Talud", "DDS",
+            ("5.3.5.03", "Batu pecah 2/3", 112.5m, "m3", 350_000),
+            ("5.3.5.03", "Semen 50 kg", 1200, "sak", 80_000),
+            ("5.3.5.02", "Upah tukang dan pekerja", 180, "hok", 120_000));
+        K("5.3", 0, "Penanganan Keadaan Mendesak", "DDS",
             ("5.4.1.01", "BLT Dana Desa untuk keluarga penerima manfaat", 120, "KK", 3_600_000));
         data.Catatan = "Disepakati prioritas jalan Dusun Satu. Usulan lampu jalan ditunda ke tahun berikutnya.";
     }
@@ -170,31 +171,52 @@ public static class UjiOtomatis
             w.Width = lebar;
             w.Height = tinggi;
             w.AturZoomUji(zoom);
-            for (int i = 0; i < w.Nav.Items.Count; i++)
+            foreach (var kunci in MainWindow.DaftarHalaman)
             {
-                w.Nav.SelectedIndex = i;
+                var h = w.Buka(kunci);
                 Tunggu();
-                var tag = ((ListBoxItem)w.Nav.Items[i]).Tag as string ?? i.ToString();
-                if (tag == "belanja" && w.Isi.Content is BelanjaView bv)
+                if (h is IsianAnggaranView iv)
                 {
-                    bv.PilihUntukUji(2);
-                    Tunggu();
+                    foreach (var (bagian, tab) in new[] { (0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (2, 0), (2, 1), (2, 2), (2, 3), (3, 1) })
+                    {
+                        iv.Buka(bagian, tab);
+                        Tunggu();
+                        Render(w, Path.Combine(folder, $"{nama}_isian_{bagian}{tab}.png"));
+                        CekTerpotong(w, $"{nama}/isian {bagian}.{tab}");
+                    }
+                    // Alur Ubah → Simpan pada kegiatan dan rincian RAB tanpa mengubah nilai
+                    iv.Buka(0, 2); Tunggu();
+                    var total = S.Hasil!.TotalBelanja;
+                    iv.HalamanAktif!.Ubah(); Tunggu();
+                    Render(w, Path.Combine(folder, $"{nama}_isian_mengubah.png"));
+                    Cek(iv.HalamanAktif!.Simpan(), $"{nama}: Ubah → Simpan kegiatan");
+                    iv.Buka(2, 3); Tunggu();
+                    iv.HalamanAktif!.Ubah(); Tunggu();
+                    Cek(iv.HalamanAktif!.Simpan(), $"{nama}: Ubah → Simpan rincian RAB");
+                    S.Hitung();
+                    Cek(S.Hasil!.TotalBelanja == total, $"{nama}: total belanja tetap setelah Ubah/Simpan");
+                    continue;
                 }
-                Render(w, Path.Combine(folder, $"{nama}_{i}_{tag}.png"));
-                CekTerpotong(w, $"{nama}/{tag}");
-                if (tag == "ringkasan" && w.Isi.Content is RingkasanView rv)
+                if (h is ParameterView pv0)
+                {
+                    pv0.BukaTab(0); Tunggu();
+                }
+                Render(w, Path.Combine(folder, $"{nama}_{kunci}.png"));
+                CekTerpotong(w, $"{nama}/{kunci}");
+                if (h is RingkasanView rv)
                 {
                     rv.Gulir.ScrollToVerticalOffset(380);
                     Tunggu();
-                    Render(w, Path.Combine(folder, $"{nama}_{i}_{tag}_bawah.png"));
+                    Render(w, Path.Combine(folder, $"{nama}_{kunci}_bawah.png"));
+                    CekTerpotong(w, $"{nama}/{kunci}-bawah");
                     rv.Gulir.ScrollToTop();
                 }
-                if (tag == "belanja" && w.Isi.Content is BelanjaView bv2)
+                if (h is DataDesaView dv)
                 {
-                    bv2.GulirUntukUji(560);
-                    Tunggu();
-                    Render(w, Path.Combine(folder, $"{nama}_{i}_{tag}_rab.png"));
-                    CekTerpotong(w, $"{nama}/{tag}-rab");
+                    dv.BukaTab(1); Tunggu();
+                    Render(w, Path.Combine(folder, $"{nama}_{kunci}_pka.png"));
+                    CekTerpotong(w, $"{nama}/{kunci}-pka");
+                    dv.BukaTab(0);
                 }
             }
         }
@@ -257,6 +279,24 @@ public static class UjiOtomatis
                         break;
                     }
                 }
+            }
+        }
+        // Tombol yang (sebagian) berada di luar jendela dan tidak bisa digulir
+        var akar = (FrameworkElement)w.Content;
+        foreach (var b in UiBantu.Turunan<Button>(w))
+        {
+            if (!b.IsVisible || b.ActualWidth < 1 || UiBantu.Leluhur<ScrollViewer>(VisualTreeHelper.GetParent(b)) != null) continue;
+            var r = b.TransformToAncestor(akar).TransformBounds(new Rect(0, 0, b.ActualWidth, b.ActualHeight));
+            for (var p = VisualTreeHelper.GetParent(b) as FrameworkElement; p != null; p = VisualTreeHelper.GetParent(p) as FrameworkElement)
+            {
+                var rp = p.TransformToAncestor(akar).TransformBounds(new Rect(0, 0, p.ActualWidth, p.ActualHeight));
+                if (r.Bottom > rp.Bottom + 1 || r.Right > rp.Right + 1)
+                {
+                    n++;
+                    if (contoh.Count < 8) contoh.Add($"tombol \"{b.Content}\" terpotong oleh {p.GetType().Name} ({r.Bottom:0} > {rp.Bottom:0})");
+                    break;
+                }
+                if (ReferenceEquals(p, akar)) break;
             }
         }
         Cek(n == 0, $"Teks terpotong di {halaman}: {n}" + (contoh.Count > 0 ? "\n        " + string.Join("\n        ", contoh) : ""));
