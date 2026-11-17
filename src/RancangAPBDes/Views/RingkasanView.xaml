@@ -7,6 +7,11 @@
             <TextBlock x:Name="TxtJudul" Style="{StaticResource Judul}" Visibility="Collapsed"/>
             <TextBlock x:Name="TxtSub" Style="{StaticResource TeksRedup}" Margin="0,0,0,12"/>
 
+            <TextBlock Text="Langkah Kerja (urutan sama dengan Siskeudes)" Style="{StaticResource SubJudul}" Margin="0,4,0,6"/>
+            <Border BorderBrush="{StaticResource Garis}" BorderThickness="1" Background="White" Margin="0,0,0,12">
+                <StackPanel x:Name="PanelLangkah"/>
+            </Border>
+            <TextBlock Text="Posisi Anggaran" Style="{StaticResource SubJudul}" Margin="0,4,0,6"/>
             <WrapPanel x:Name="PanelKartu"/>
 
             <TextBlock Text="Dana per Sumber Dana" Style="{StaticResource SubJudul}"/>
@@ -98,7 +103,7 @@
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Level}" Value="Info">
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Primer}"/>
-                                <Setter TargetName="Ikon" Property="Foreground" Value="{StaticResource Primer}"/>
+                                <Setter TargetName="Ikon" Property="Foreground" Value="{StaticResource PrimerGelap}"/>
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>

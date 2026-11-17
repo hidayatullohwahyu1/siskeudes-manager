@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +42,27 @@ public partial class App : Application
             catch (Exception ex) { sb.AppendLine("GALAT: " + ex); }
             File.WriteAllText(e.Args[iImpor + 1], sb.ToString());
             Shutdown(0);
+            return;
+        }
+
+        var iAwal = Array.IndexOf(e.Args, "--impor-awal");
+        if (iAwal >= 0 && iAwal + 2 < e.Args.Length)
+        {
+            AturBudaya();
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            base.OnStartup(e);
+            var kode = ImporAwal.Jalankan(e.Args[iAwal + 1], e.Args.Skip(iAwal + 2).ToList());
+            Shutdown(kode);
+            return;
+        }
+
+        var iFoto = Array.IndexOf(e.Args, "--foto");
+        if (iFoto >= 0 && iFoto + 2 < e.Args.Length)
+        {
+            AturBudaya();
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            base.OnStartup(e);
+            Shutdown(UjiOtomatis.Foto(e.Args[iFoto + 1], e.Args[iFoto + 2]));
             return;
         }
 

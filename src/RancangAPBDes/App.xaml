@@ -14,26 +14,26 @@
         <sys:Double x:Key="HurufBesar">18</sys:Double>
 
         <!-- Palet: hijau pemerintahan desa, latar netral, teks gelap (kontras ≥ 4,5:1) -->
-        <SolidColorBrush x:Key="Primer" Color="#2E7D32"/>
-        <SolidColorBrush x:Key="PrimerGelap" Color="#1B5E20"/>
+        <SolidColorBrush x:Key="Primer" Color="#1B5E20"/>
+        <SolidColorBrush x:Key="PrimerGelap" Color="#13461A"/>
         <SolidColorBrush x:Key="PrimerMuda" Color="#EAF4EB"/>
         <SolidColorBrush x:Key="Pilihan" Color="#CFE8D3"/>
-        <SolidColorBrush x:Key="LatarApp" Color="#E9ECEF"/>
-        <SolidColorBrush x:Key="LatarPanel" Color="#F5F7F6"/>
-        <SolidColorBrush x:Key="Garis" Color="#C9D1CC"/>
-        <SolidColorBrush x:Key="GarisTegas" Color="#97A39B"/>
-        <SolidColorBrush x:Key="TeksUtama" Color="#1C2321"/>
-        <SolidColorBrush x:Key="WarnaRedup" Color="#4B5652"/>
-        <SolidColorBrush x:Key="JudulForm" Color="#8B1C1C"/>
-        <SolidColorBrush x:Key="Merah" Color="#B42318"/>
+        <SolidColorBrush x:Key="LatarApp" Color="#E3E7EA"/>
+        <SolidColorBrush x:Key="LatarPanel" Color="#EFF3F0"/>
+        <SolidColorBrush x:Key="Garis" Color="#B7C1BB"/>
+        <SolidColorBrush x:Key="GarisTegas" Color="#83908A"/>
+        <SolidColorBrush x:Key="TeksUtama" Color="#121816"/>
+        <SolidColorBrush x:Key="WarnaRedup" Color="#37413D"/>
+        <SolidColorBrush x:Key="JudulForm" Color="#7A1717"/>
+        <SolidColorBrush x:Key="Merah" Color="#931A12"/>
         <SolidColorBrush x:Key="MerahMuda" Color="#FDECEA"/>
-        <SolidColorBrush x:Key="Hijau" Color="#1B6E2A"/>
+        <SolidColorBrush x:Key="Hijau" Color="#13531E"/>
         <SolidColorBrush x:Key="HijauMuda" Color="#E3F2E5"/>
-        <SolidColorBrush x:Key="Kuning" Color="#6F4700"/>
+        <SolidColorBrush x:Key="Kuning" Color="#5A3A00"/>
         <SolidColorBrush x:Key="KuningMuda" Color="#FFF5D9"/>
         <LinearGradientBrush x:Key="LatarKepalaForm" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#33803A" Offset="0"/>
-            <GradientStop Color="#2A6F30" Offset="1"/>
+            <GradientStop Color="#1F6024" Offset="0"/>
+            <GradientStop Color="#18501D" Offset="1"/>
         </LinearGradientBrush>
 
         <!-- ================= Tombol ================= -->
@@ -61,16 +61,16 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#EAF4EB"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2E7D32"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1B5E20"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="#D3E9D6"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2E7D32"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#1B5E20"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.42"/>
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -98,7 +98,7 @@
                                 <Setter TargetName="Bd" Property="Background" Value="#14461A"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Bd" Property="Opacity" Value="0.42"/>
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -128,8 +128,9 @@
             <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
             <Style.Triggers>
                 <Trigger Property="IsReadOnly" Value="True">
-                    <Setter Property="Background" Value="#F4F6F9"/>
-                    <Setter Property="BorderBrush" Value="#D5DBE3"/>
+                    <Setter Property="Background" Value="#F3F5F4"/>
+                    <Setter Property="BorderBrush" Value="#C3CCC6"/>
+                    <Setter Property="Foreground" Value="#121816"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -221,10 +222,10 @@
             <Setter Property="SelectionUnit" Value="FullRow"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="GridLinesVisibility" Value="All"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#E3E7ED"/>
-            <Setter Property="VerticalGridLinesBrush" Value="#EDF0F4"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#D6DDD8"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#E2E8E4"/>
             <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#F6F8F7"/>
+            <Setter Property="AlternatingRowBackground" Value="#F2F6F3"/>
             <Setter Property="BorderBrush" Value="{StaticResource Garis}"/>
             <Setter Property="Background" Value="White"/>
             <Setter Property="MinRowHeight" Value="25"/>
@@ -234,7 +235,7 @@
         </Style>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#E4EBE6"/>
+            <Setter Property="Background" Value="#D9E4DC"/>
             <Setter Property="Foreground" Value="{StaticResource TeksUtama}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>

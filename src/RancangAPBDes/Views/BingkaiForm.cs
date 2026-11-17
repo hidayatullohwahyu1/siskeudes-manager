@@ -26,7 +26,7 @@ public class BingkaiForm : UserControl
     public FrameworkElement Isi { get; }
     public string JudulForm { get; }
 
-    public BingkaiForm(string judul, FrameworkElement isi, Action? tutup)
+    public BingkaiForm(string judul, FrameworkElement isi, Action? tutup, string? jalurMenu = null)
     {
         JudulForm = judul;
         Isi = isi;
@@ -56,11 +56,24 @@ public class BingkaiForm : UserControl
             BorderBrush = (Brush)Application.Current.FindResource("Garis"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(12, 4, 12, 4),
-            Child = new TextBlock
+            Child = new StackPanel
             {
-                Text = judul.ToUpperInvariant(), FontSize = Huruf.Isi, FontWeight = FontWeights.Bold,
-                Foreground = (Brush)Application.Current.FindResource("JudulForm"),
-                TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = judul.ToUpperInvariant(), FontSize = Huruf.Isi, FontWeight = FontWeights.Bold,
+                        Foreground = (Brush)Application.Current.FindResource("JudulForm"),
+                        TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap
+                    },
+                    new TextBlock
+                    {
+                        Text = jalurMenu == null ? "" : "Menu: " + jalurMenu, FontSize = Huruf.Kecil,
+                        Foreground = (Brush)Application.Current.FindResource("WarnaRedup"),
+                        TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap,
+                        Visibility = jalurMenu == null ? Visibility.Collapsed : Visibility.Visible
+                    }
+                }
             }
         };
         DockPanel.SetDock(sub, Dock.Top);

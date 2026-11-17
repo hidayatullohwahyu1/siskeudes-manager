@@ -41,10 +41,10 @@ public class IsianAnggaranView : UserControl
     public IsianAnggaranView()
     {
         BangunKegiatan();
-        BangunRekening("Pendapatan", "RAP", "RAP Rinci", "4", () => S.Data?.Pendapatan, SumberDanaPendapatan, "tahun", Laporan.Pendapatan);
+        BangunRekening("2. Pendapatan", "1. RAP", "2. RAP Rinci", "4", () => S.Data?.Pendapatan, SumberDanaPendapatan, "tahun", Laporan.Pendapatan);
         BangunBelanja();
-        BangunRekening("Pembiayaan 1", "Penerimaan", "Rincian Penerimaan", "6.1", () => S.Data?.PenerimaanPembiayaan, _ => "", "Ls", Laporan.Pembiayaan);
-        BangunRekening("Pembiayaan 2", "Pengeluaran", "Rincian Pengeluaran", "6.2", () => S.Data?.PengeluaranPembiayaan, _ => "", "tahun", Laporan.Pembiayaan);
+        BangunRekening("4. Pembiayaan 1", "1. Penerimaan", "2. Rincian Penerimaan", "6.1", () => S.Data?.PenerimaanPembiayaan, _ => "", "Ls", Laporan.Pembiayaan);
+        BangunRekening("5. Pembiayaan 2", "1. Pengeluaran", "2. Rincian Pengeluaran", "6.2", () => S.Data?.PengeluaranPembiayaan, _ => "", "tahun", Laporan.Pembiayaan);
 
         foreach (var (nama, _) in _bagian) _nav.Items.Add(Gaya.ItemNav(nama));
         _nav.SelectionChanged += (_, _) => TampilkanBagian();
@@ -282,7 +282,7 @@ public class IsianAnggaranView : UserControl
         hKeg.TambahTombol("Paket Kegiatan ›", () => PindahTab(tab, 3), butuhUbah: false, butuhPilih: true, tip: "Buka tab Paket Kegiatan");
 
         var hPaket = BuatHalamanPaket(bisaUbah: true);
-        tab = BuatTab("Kegiatan", ("Bidang", hBidang), ("Sub Bidang", hSub), ("Kegiatan", hKeg), ("Paket Kegiatan", hPaket));
+        tab = BuatTab("1. Kegiatan", ("1. Bidang", hBidang), ("2. Sub Bidang", hSub), ("3. Kegiatan", hKeg), ("4. Paket Kegiatan", hPaket));
     }
 
     HalamanData BuatHalamanPaket(bool bisaUbah)
@@ -409,7 +409,7 @@ public class IsianAnggaranView : UserControl
             konteks: () => _paket == null ? null : $"Kegiatan {_keg?.Kode}. › Paket {_paket.No:00} {_paket.Nama}",
             pindahKeRinci: () => PindahTab(tab, 4),
             laporan: Laporan.Rab);
-        tab = BuatTab("Belanja", ("Bidang", hBidang), ("Kegiatan", hKeg), ("Paket", hPaket), ("RAB", hRab), ("RAB Rinci", hRinci));
+        tab = BuatTab("3. Belanja", ("1. Bidang", hBidang), ("2. Kegiatan", hKeg), ("3. Paket", hPaket), ("4. RAB", hRab), ("5. RAB Rinci", hRinci));
     }
 
     // ================================================================ Pendapatan & Pembiayaan

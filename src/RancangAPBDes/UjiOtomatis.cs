@@ -118,6 +118,34 @@ public static class UjiOtomatis
         return _gagal;
     }
 
+    /// <summary>Foto & audit semua halaman memakai SALINAN file data nyata: --foto "data.apbdes" "folder".</summary>
+    public static int Foto(string fileData, string folder)
+    {
+        Directory.CreateDirectory(folder);
+        var salinan = Path.Combine(folder, "salinan.apbdes");
+        File.Copy(fileData, salinan, overwrite: true);
+        AppState.ModeUji = true;
+        var S = AppState.Instance;
+        try
+        {
+            Cek(S.BukaFile(salinan), "Buka salinan data nyata");
+            var draft = S.SemuaSkenario.FirstOrDefault(s => !s.IsFinal);
+            if (draft != null) S.PilihTahunDanSkenario(draft.Tahun, draft.Id);
+            S.Hitung();
+            AmbilGambar(folder, S);
+        }
+        catch (Exception ex) { Cek(false, "Pengecualian: " + ex); }
+        finally
+        {
+            try { S.TutupFile(); } catch { /* abaikan */ }
+            Hasil.AppendLine(AuditTampilan.Ringkasan());
+            Cek(AuditTampilan.KontrasRendah.Count == 0 && AuditTampilan.Terpotong.Count == 0 && AuditTampilan.TanpaAksi.Count == 0 && AuditTampilan.GalatKlik.Count == 0, "Audit tampilan dengan data nyata");
+            Hasil.AppendLine(_gagal == 0 ? "SEMUA UJI LULUS" : $"{_gagal} UJI GAGAL");
+            File.WriteAllText(Path.Combine(folder, "hasil.txt"), Hasil.ToString());
+        }
+        return _gagal;
+    }
+
     /// <summary>Impor dari Excel tiruan berformat Siskeudes (RAB, pendapatan, pembiayaan, rekap PKA).</summary>
     static void UjiImpor(string folder, AppState S)
     {
@@ -331,13 +359,17 @@ public static class UjiOtomatis
         Render(pv2, Path.Combine(folder, "pratinjau_perubahan.png"));
         AuditTampilan.Periksa(pv2, "pratinjau perubahan");
         pv2.Close();
-        var hasilImpor = ImporSiskeudes.Baca(new[] { Path.Combine(folder, "tiruan_siskeudes.xlsx") });
-        var di = new DialogImpor(hasilImpor, DateTime.Today.Year) { Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
-        di.Show();
-        Tunggu();
-        Render(di, Path.Combine(folder, "dialog_impor.png"));
-        AuditTampilan.Periksa(di, "dialog impor");
-        di.Close();
+        var tiruan = Path.Combine(folder, "tiruan_siskeudes.xlsx");
+        if (File.Exists(tiruan))
+        {
+            var hasilImpor = ImporSiskeudes.Baca(new[] { tiruan });
+            var di = new DialogImpor(hasilImpor, DateTime.Today.Year) { Left = 0, Top = 0, WindowStartupLocation = WindowStartupLocation.Manual, ShowActivated = false };
+            di.Show();
+            Tunggu();
+            Render(di, Path.Combine(folder, "dialog_impor.png"));
+            AuditTampilan.Periksa(di, "dialog impor");
+            di.Close();
+        }
         w.Close();
     }
 

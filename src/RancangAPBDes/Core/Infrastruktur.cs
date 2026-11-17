@@ -71,6 +71,12 @@ public class Pengaturan
 {
     public string? FileTerakhir { get; set; }
     public double Zoom { get; set; } = 1.0;
+    /// <summary>Ukuran & posisi jendela terakhir (null = pertama kali: dibuka maksimal).</summary>
+    public bool? JendelaMaksimal { get; set; }
+    public double Kiri { get; set; }
+    public double Atas { get; set; }
+    public double Lebar { get; set; }
+    public double Tinggi { get; set; }
 
     static string FilePath => Path.Combine(Folder.DataAplikasi, "pengaturan.json");
 

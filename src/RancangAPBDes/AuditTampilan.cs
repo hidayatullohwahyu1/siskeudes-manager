@@ -40,12 +40,13 @@ public static class AuditTampilan
             var cuplik = tb.Text.Length > 40 ? tb.Text[..40] + "…" : tb.Text;
 
             // Kontras
-            if (tb.IsEnabled && !Redup(tb) && tb.Foreground is SolidColorBrush fg)
+            if (!Redup(tb) && UiBantu.Leluhur<Button>(tb) is not { IsEnabled: false } && tb.Foreground is SolidColorBrush fg)
             {
                 var bg = Latar(tb);
                 var r = Rasio(Campur(fg.Color, bg), bg);
                 bool besar = tb.FontSize >= 18.5 || (tb.FontSize >= 14 && tb.FontWeight.ToOpenTypeWeight() >= 600);
-                if (r < (besar ? 3.0 : 4.5))
+                // Standar AAA: 7:1 untuk teks biasa, 4,5:1 untuk teks besar/tebal
+                if (r < (besar ? 4.5 : 7.0))
                     Catat(KontrasRendah, $"{halaman}: \"{cuplik}\" kontras {r:0.0}:1 (teks #{fg.Color.R:X2}{fg.Color.G:X2}{fg.Color.B:X2} di latar #{bg.R:X2}{bg.G:X2}{bg.B:X2})");
             }
 
@@ -136,7 +137,7 @@ public static class AuditTampilan
             foreach (var x in d.Take(40)) sb.AppendLine("    " + x);
             if (d.Count > 40) sb.AppendLine($"    … dan {d.Count - 40} lagi");
         }
-        Daftar("Kontras di bawah standar WCAG", KontrasRendah);
+        Daftar("Kontras di bawah standar WCAG AAA (7:1, teks besar 4,5:1)", KontrasRendah);
         Daftar("Teks/isian terpotong", Terpotong);
         Daftar("Tombol/menu tanpa aksi", TanpaAksi);
         Daftar("Galat saat tombol diklik", GalatKlik);

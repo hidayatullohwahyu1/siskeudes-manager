@@ -108,6 +108,10 @@ public class HalamanData : UserControl
     readonly List<(Isian isi, FrameworkElement label, FrameworkElement editor, List<Control> kontrol)> _editor = new();
     bool _dibangun;
     bool? _sempit;
+    /// <summary>Kotak baca (mode lihat) untuk pilihan & centang: teks gelap, tidak pudar seperti kontrol nonaktif.</summary>
+    readonly List<(Isian isi, TextBox tampil, Control editor)> _tampil = new();
+    readonly List<Button> _tombolKode = new();
+    public const double LebarLabel = 150;
 
     object? _draf;
     bool _baru;
@@ -280,7 +284,7 @@ public class HalamanData : UserControl
         {
             Text = isi.Label + (isi.Wajib ? " *" : "") + (isi.MaksKarakter > 0 ? $" (maks. {isi.MaksKarakter})" : ""),
             Style = (Style)Application.Current.FindResource("Label"),
-            MaxWidth = 170,
+            MaxWidth = LebarLabel - 8,
             ToolTip = isi.Petunjuk
         };
         var kontrol = new List<Control>();
@@ -320,13 +324,13 @@ public class HalamanData : UserControl
                     cb.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedValueProperty, B(t: UpdateSourceTrigger.Explicit));
                 }
                 else cb.SetBinding(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, B(t: UpdateSourceTrigger.Explicit));
-                kontrol.Add(cb); editor = cb; break;
+                kontrol.Add(cb); editor = DenganTampil(isi, cb, 420); break;
             }
             case JenisIsian.PilihanBebas:
             {
                 var cb = new ComboBox { IsEditable = true, ItemsSource = isi.Pilihan?.Invoke(), MaxWidth = 420 };
                 cb.SetBinding(ComboBox.TextProperty, B(t: UpdateSourceTrigger.Explicit));
-                kontrol.Add(cb); editor = cb; break;
+                kontrol.Add(cb); editor = DenganTampil(isi, cb, 420); break;
             }
             case JenisIsian.Kode:
             {
@@ -353,6 +357,7 @@ public class HalamanData : UserControl
                 Grid.SetColumn(nama, 2);
                 g.Children.Add(tb); g.Children.Add(tombol); g.Children.Add(nama);
                 kontrol.Add(tb); kontrol.Add(tombol);
+                _tombolKode.Add(tombol);
                 editor = g; break;
             }
             case JenisIsian.Info:
@@ -367,7 +372,7 @@ public class HalamanData : UserControl
             {
                 var c = new CheckBox { Margin = new Thickness(0, 0, 0, 6) };
                 c.SetBinding(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, B(t: UpdateSourceTrigger.Explicit));
-                kontrol.Add(c); editor = c; break;
+                kontrol.Add(c); editor = DenganTampil(isi, c, 160); break;
             }
             default:
             {
@@ -383,6 +388,35 @@ public class HalamanData : UserControl
         return (isi, label, editor, kontrol);
     }
 
+    Grid DenganTampil(Isian isi, Control editor, double lebarMaks)
+    {
+        var tampil = new TextBox { IsReadOnly = true, Focusable = false, IsTabStop = false, MaxWidth = lebarMaks, HorizontalAlignment = HorizontalAlignment.Stretch, TextWrapping = TextWrapping.Wrap };
+        if (editor is CheckBox) tampil.HorizontalAlignment = HorizontalAlignment.Left;
+        tampil.MinWidth = editor is CheckBox ? 80 : 0;
+        editor.Margin = new Thickness(0);
+        var g = new Grid();
+        g.Children.Add(editor);
+        g.Children.Add(tampil);
+        _tampil.Add((isi, tampil, editor));
+        return g;
+    }
+
+    static string TeksTampil(Isian isi, object? draf)
+    {
+        if (draf == null) return "";
+        var v = BacaProperti(draf, isi.Path);
+        if (isi.Jenis == JenisIsian.Centang) return v is true ? "Ya" : "Tidak";
+        if (isi.Jenis == JenisIsian.Pilihan && isi.NilaiPath != null && isi.TampilPath != null && isi.Pilihan != null)
+        {
+            foreach (var x in isi.Pilihan())
+            {
+                var t = x.GetType();
+                if (Equals(t.GetProperty(isi.NilaiPath)?.GetValue(x), v)) return t.GetProperty(isi.TampilPath)?.GetValue(x)?.ToString() ?? "";
+            }
+        }
+        return v?.ToString() ?? "";
+    }
+
     /// <summary>Dua kolom isian pada layar lebar, satu kolom pada layar sempit.</summary>
     void AturForm(bool sempit, bool paksa = false)
     {
@@ -394,7 +428,7 @@ public class HalamanData : UserControl
         int kolomPasang = sempit ? 1 : 2;
         for (int i = 0; i < kolomPasang; i++)
         {
-            _form.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            _form.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(LebarLabel) });
             _form.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 160 });
             if (i < kolomPasang - 1) _form.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
         }
@@ -500,6 +534,7 @@ public class HalamanData : UserControl
 
     void SegarkanEditor()
     {
+        foreach (var (isi, tampil, _) in _tampil) tampil.Text = TeksTampil(isi, _draf);
         foreach (var (_, _, _, kontrol) in _editor)
             foreach (var k in kontrol)
             {
@@ -512,6 +547,12 @@ public class HalamanData : UserControl
 
     void AturHanyaBaca(bool hanyaBaca)
     {
+        foreach (var (isi, tampil, editor) in _tampil)
+        {
+            tampil.Visibility = hanyaBaca ? Visibility.Visible : Visibility.Collapsed;
+            editor.Visibility = hanyaBaca ? Visibility.Collapsed : Visibility.Visible;
+        }
+        foreach (var b in _tombolKode) b.Visibility = hanyaBaca ? Visibility.Collapsed : Visibility.Visible;
         foreach (var (_, _, _, kontrol) in _editor)
             foreach (var k in kontrol)
             {

@@ -24,6 +24,20 @@ public partial class MainWindow : Window
         InitializeComponent();
         TerapkanZoom(S.Pengaturan.Zoom);
         IsianAnggaranView.BukaLaporan = j => BukaPratinjau(j);
+        RingkasanView.Perintah = p =>
+        {
+            switch (p)
+            {
+                case "desa": ((DataDesaView)Buka("desa")).BukaTab(S.Desa.NamaDesa == "" ? 0 : 1); break;
+                case "kegiatan": ((IsianAnggaranView)Buka("isian")).Buka(0, 0); break;
+                case "pendapatan": ((IsianAnggaranView)Buka("isian")).Buka(1, 0); break;
+                case "belanja": ((IsianAnggaranView)Buka("isian")).Buka(2, 0); break;
+                case "pembiayaan": ((IsianAnggaranView)Buka("isian")).Buka(3, 0); break;
+                case "periksa": (Buka("beranda") as RingkasanView)?.GulirKePemeriksaan(); break;
+                case "posting": Posting_Click(this, new RoutedEventArgs()); break;
+                case "cetak": BukaPratinjau(Laporan.SiapInput); break;
+            }
+        };
         S.HasilBerubah += PerbaruiStatus;
         S.PropertyChanged += (_, e) =>
         {
@@ -31,12 +45,8 @@ public partial class MainWindow : Window
         };
         PreviewKeyDown += SaatTombol;
         PreviewMouseWheel += SaatRoda;
-        Loaded += (_, _) =>
-        {
-            PerbaruiStatus();
-            if (!AppState.ModeUji && WindowState != WindowState.Maximized && SystemParameters.WorkArea.Width < 1500)
-                WindowState = WindowState.Maximized;
-        };
+        SourceInitialized += (_, _) => PulihkanJendela();
+        Loaded += (_, _) => PerbaruiStatus();
     }
 
     // ------------------------------------------------------------ file awal
@@ -79,12 +89,12 @@ public partial class MainWindow : Window
             Action tutup = () => Buka("beranda");
             h = kunci switch
             {
-                "beranda" => new BingkaiForm("Ringkasan APBDes", new RingkasanView(), null),
-                "isian" => new BingkaiForm("Isian Data Anggaran", new IsianAnggaranView(), tutup),
-                "banding" => new BingkaiForm("Perbandingan Anggaran Semula – Menjadi", new BandingView(), tutup),
-                "desa" => new BingkaiForm("Data Umum Desa", new DataDesaView(), tutup),
-                "parameter" => new BingkaiForm("Parameter", new ParameterView(), tutup),
-                _ => new BingkaiForm("Petunjuk Penggunaan", new BantuanView(), tutup),
+                "beranda" => new BingkaiForm("Beranda – Ringkasan APBDes", new RingkasanView(), null, "Laporan › Ringkasan APBDes"),
+                "isian" => new BingkaiForm("Isian Data Anggaran", new IsianAnggaranView(), tutup, "Data Entri › Penganggaran › Isian Data Anggaran"),
+                "banding" => new BingkaiForm("Perbandingan Anggaran Semula – Menjadi", new BandingView(), tutup, "Simulasi › Bandingkan Skenario"),
+                "desa" => new BingkaiForm("Data Umum Desa", new DataDesaView(), tutup, "Data Entri › Data Umum Desa"),
+                "parameter" => new BingkaiForm("Parameter", new ParameterView(), tutup, "Parameter"),
+                _ => new BingkaiForm("Petunjuk Penggunaan", new BantuanView(), tutup, "Bantuan › Petunjuk Penggunaan"),
             };
             _halaman[kunci] = h;
         }
@@ -175,7 +185,7 @@ public partial class MainWindow : Window
             LencanaStatus.Visibility = Visibility.Visible;
             TxtStatus.Text = a.IsFinal ? "POSTING" : "DRAFT";
             LencanaStatus.Background = (Brush)FindResource(a.IsFinal ? "HijauMuda" : "PrimerMuda");
-            TxtStatus.Foreground = (Brush)FindResource(a.IsFinal ? "Hijau" : "Primer");
+            TxtStatus.Foreground = (Brush)FindResource(a.IsFinal ? "Hijau" : "PrimerGelap");
             LencanaStatus.ToolTip = a.IsFinal ? "Skenario sudah diposting (terkunci)" : "Skenario masih bisa diubah";
         }
 
@@ -442,8 +452,41 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>Pertama kali: maksimal (paling lega, seperti Siskeudes). Berikutnya: ukuran & posisi terakhir.</summary>
+    void PulihkanJendela()
+    {
+        if (AppState.ModeUji) return;
+        var p = S.Pengaturan;
+        var layar = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        var simpan = new Rect(p.Kiri, p.Atas, p.Lebar, p.Tinggi);
+        if (p.JendelaMaksimal != null && p.Lebar >= MinWidth && p.Tinggi >= MinHeight && layar.IntersectsWith(simpan)
+            && simpan.Left >= layar.Left - 50 && simpan.Top >= layar.Top - 20 && simpan.Right <= layar.Right + 50)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = p.Kiri; Top = p.Atas; Width = p.Lebar; Height = p.Tinggi;
+            if (p.JendelaMaksimal == true) WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            var kerja = SystemParameters.WorkArea;
+            Width = Math.Min(1400, kerja.Width);
+            Height = Math.Min(860, kerja.Height);
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    void SimpanUkuranJendela()
+    {
+        if (AppState.ModeUji || _layarPenuh) return;
+        var p = S.Pengaturan;
+        var b = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        p.JendelaMaksimal = WindowState == WindowState.Maximized;
+        if (!b.IsEmpty) { p.Kiri = b.Left; p.Atas = b.Top; p.Lebar = b.Width; p.Tinggi = b.Height; }
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
+        SimpanUkuranJendela();
         AkhiriIsian();
         if (!S.SimpanSegera() &&
             !Pesan.Tanya("Sebagian perubahan GAGAL disimpan ke file (misalnya flashdisk terlepas).\n\n" +

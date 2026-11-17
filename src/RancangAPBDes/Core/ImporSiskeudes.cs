@@ -17,6 +17,9 @@ public static class ImporSiskeudes
         /// <summary>Versi anggaran yang ditemukan: "Semula", "Menjadi", atau "Anggaran" (bila tidak ada perubahan).</summary>
         public Dictionary<string, DataSkenario> Versi { get; } = new();
         public Dictionary<string, string> Pelaksana { get; } = new();
+        /// <summary>Identitas desa dari kop & tanda tangan: NamaDesa, Kecamatan, KepalaDesa, Sekdes, TempatTtd.</summary>
+        public Dictionary<string, string> InfoDesa { get; } = new();
+        public HashSet<string> Satuan { get; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, string> RekeningBaru { get; } = new();
         public Dictionary<string, string> KegiatanBaru { get; } = new();
         public List<string> Catatan { get; } = new();
@@ -74,6 +77,8 @@ public static class ImporSiskeudes
         var rng = ws.RangeUsed();
         if (rng == null) return;
         int barisAkhir = rng.LastRow().RowNumber(), kolomAkhir = Math.Min(rng.LastColumn().ColumnNumber(), 30);
+
+        BacaIdentitas(ws, hasil, barisAkhir, kolomAkhir);
 
         // ---- kepala lembar (Bidang/Sub Bidang/Kegiatan/Waktu/Output) dan baris judul kolom
         string? kodeKeg = null, namaKeg = null, waktu = null, keluaran = null;
@@ -230,6 +235,7 @@ public static class ImporSiskeudes
                 RincianAnggaran rinci;
                 using (ChangeTracker.Suspend())
                     rinci = new RincianAnggaran { KodeRekening = rek, Uraian = nama, Volume = vol, Satuan = sat, HargaSatuan = harga, SumberDana = sd };
+                if (rinci.Satuan != "") hasil.Satuan.Add(rinci.Satuan);
                 if (rinci.Jumlah != jumlah && jumlah != 0)
                     hasil.Selisih.Add($"{ws.Name} › {nama}: volume × harga = {rinci.Jumlah:N0}, di file {jumlah:N0}");
                 totalBaca += rinci.Jumlah;
@@ -250,6 +256,42 @@ public static class ImporSiskeudes
             if (keg != null && keg.Paket.Count == 0) keg.Paket.Add(new Paket { Nama = keg.Nama });
         }
     }
+
+    /// <summary>"PEMERINTAH DESA X - KECAMATAN Y", blok tanda tangan "KEPALA DESA …" / "SEKRETARIS DESA" + nama di bawahnya.</summary>
+    static void BacaIdentitas(IXLWorksheet ws, Hasil hasil, int barisAkhir, int kolomAkhir)
+    {
+        var info = hasil.InfoDesa;
+        for (int r = 1; r <= Math.Min(4, barisAkhir); r++)
+            if (Regex.Match(Teks(ws.Cell(r, 1)), @"TAHUN\s+ANGGARAN\s+(\d{4})", RegexOptions.IgnoreCase) is { Success: true } mt0)
+                info.TryAdd("Tahun", mt0.Groups[1].Value);
+        var kop = Teks(ws.Cell(1, 1));
+        var mk = Regex.Match(kop, @"PEMERINTAH\s+DESA\s+(.+?)(?:\s*-\s*KECAMATAN\s+(.+))?$", RegexOptions.IgnoreCase);
+        if (mk.Success)
+        {
+            info.TryAdd("NamaDesa", Judul(mk.Groups[1].Value));
+            if (mk.Groups[2].Success) info.TryAdd("Kecamatan", Judul(mk.Groups[2].Value));
+        }
+        for (int r = Math.Max(1, barisAkhir - 12); r <= barisAkhir; r++)
+            for (int c = 1; c <= kolomAkhir; c++)
+            {
+                var t = Teks(ws.Cell(r, c)).ToUpperInvariant();
+                if (t == "") continue;
+                string? kunci = t.StartsWith("KEPALA DESA") ? "KepalaDesa" : t.StartsWith("SEKRETARIS DESA") ? "Sekdes" : null;
+                if (kunci != null)
+                {
+                    for (int r2 = r + 1; r2 <= Math.Min(barisAkhir, r + 5); r2++)
+                    {
+                        var nama = Teks(ws.Cell(r2, c));
+                        if (nama.Length > 2 && !nama.Contains(":") && !Regex.IsMatch(nama, @"\d")) { info.TryAdd(kunci, Judul(nama)); break; }
+                    }
+                }
+                var mt = Regex.Match(Teks(ws.Cell(r, c)), @"^([A-Za-z .'-]+),\s*\d{1,2}\s+\w+\s+\d{4}$");
+                if (mt.Success) info.TryAdd("TempatTtd", Judul(mt.Groups[1].Value));
+            }
+    }
+
+    /// <summary>"SUKA MAJU" → "Suka Maju".</summary>
+    static string Judul(string s) => CultureInfo.GetCultureInfo("id-ID").TextInfo.ToTitleCase(s.Trim().ToLowerInvariant());
 
     static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
 
