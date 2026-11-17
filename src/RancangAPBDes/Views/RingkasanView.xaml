@@ -1,0 +1,117 @@
+<UserControl x:Class="RancangAPBDes.Views.RingkasanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:RancangAPBDes.Core">
+    <ScrollViewer x:Name="Gulir" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,0,8,16">
+            <TextBlock x:Name="TxtJudul" Style="{StaticResource Judul}"/>
+            <TextBlock x:Name="TxtSub" Style="{StaticResource TeksRedup}" Margin="0,0,0,12"/>
+
+            <WrapPanel x:Name="PanelKartu"/>
+
+            <TextBlock Text="Dana per Sumber Dana" Style="{StaticResource SubJudul}"/>
+            <TextBlock Style="{StaticResource TeksRedup}" Margin="0,0,0,6"
+                       Text="Pagu = pendapatan + penerimaan pembiayaan. Dipakai = belanja + pengeluaran pembiayaan. Sisa merah berarti belanja melebihi dana yang tersedia."/>
+            <DataGrid x:Name="TabelSd" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="90" MinWidth="90" ElementStyle="{StaticResource SelTeks}" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="Sumber Dana" Binding="{Binding Nama}" Width="2*" MinWidth="160" ElementStyle="{StaticResource SelTeks}"/>
+                    <DataGridTextColumn Header="Pagu (Rp)" Binding="{Binding Pagu, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                    <DataGridTextColumn Header="Dipakai (Rp)" Binding="{Binding Dipakai, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                    <DataGridTextColumn Header="Sisa (Rp)" Binding="{Binding Sisa, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SelAngkaTebal}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Kurang}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Merah}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="% Terpakai" Binding="{Binding Persen, StringFormat={}{0:0.#}%}" Width="100" MinWidth="90" ElementStyle="{StaticResource SelAngka}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Text="Belanja per Bidang" Style="{StaticResource SubJudul}"/>
+            <DataGrid x:Name="TabelBidang" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="70" MinWidth="70" ElementStyle="{StaticResource SelTeks}" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="Bidang" Binding="{Binding Nama}" Width="3*" MinWidth="200" ElementStyle="{StaticResource SelTeks}"/>
+                    <DataGridTextColumn Header="Kegiatan" Binding="{Binding JumlahKegiatan}" Width="95" MinWidth="95" ElementStyle="{StaticResource SelAngka}"/>
+                    <DataGridTextColumn Header="Jumlah (Rp)" Binding="{Binding Jumlah, StringFormat={}{0:#,##0}}" Width="*" MinWidth="130" ElementStyle="{StaticResource SelAngkaTebal}"/>
+                    <DataGridTextColumn Header="% Belanja" Binding="{Binding Persen, StringFormat={}{0:0.#}%}" Width="100" MinWidth="90" ElementStyle="{StaticResource SelAngka}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Text="Cek Aturan" Style="{StaticResource SubJudul}"/>
+            <TextBlock x:Name="TxtAturanKosong" Style="{StaticResource TeksRedup}" Visibility="Collapsed"
+                       Text="Belum ada aturan yang aktif. Atur di halaman Referensi &amp; Aturan."/>
+            <DataGrid x:Name="TabelAturan" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Aturan" Binding="{Binding Nama}" Width="3*" MinWidth="200" ElementStyle="{StaticResource SelTeks}"/>
+                    <DataGridTextColumn Header="Batas" Binding="{Binding Batas}" Width="95" MinWidth="95" ElementStyle="{StaticResource SelTeks}"/>
+                    <DataGridTextColumn Header="Nilai (Rp)" Binding="{Binding Nilai, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                    <DataGridTextColumn Header="Dasar" Binding="{Binding NamaDasar}" Width="*" MinWidth="110" ElementStyle="{StaticResource SelTeks}"/>
+                    <DataGridTextColumn Header="Hasil" Binding="{Binding Persen, StringFormat={}{0:0.##}%}" Width="90" MinWidth="90" ElementStyle="{StaticResource SelAngka}"/>
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="125" MinWidth="125">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SelTeks}">
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Foreground" Value="{StaticResource Hijau}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Terpenuhi}" Value="False">
+                                        <Setter Property="Foreground" Value="{StaticResource Merah}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Text="Peringatan &amp; Catatan Pemeriksaan" Style="{StaticResource SubJudul}"/>
+            <TextBlock x:Name="TxtAman" Text="✔ Tidak ada masalah yang ditemukan." Foreground="{StaticResource Hijau}" FontWeight="SemiBold" Visibility="Collapsed"/>
+            <ItemsControl x:Name="DaftarPeringatan">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type core:Peringatan}">
+                        <Border x:Name="Bd" Background="White" BorderBrush="{StaticResource Garis}" BorderThickness="4,0,0,0" Padding="10,6" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="Ikon" Text="{Binding Ikon}" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Teks}" TextWrapping="Wrap"/>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Level}" Value="Kesalahan">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Merah}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource MerahMuda}"/>
+                                <Setter TargetName="Ikon" Property="Foreground" Value="{StaticResource Merah}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="Perhatian">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#D4A017"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource KuningMuda}"/>
+                                <Setter TargetName="Ikon" Property="Foreground" Value="{StaticResource Kuning}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Level}" Value="Info">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Primer}"/>
+                                <Setter TargetName="Ikon" Property="Foreground" Value="{StaticResource Primer}"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock x:Name="TxtLebih" Style="{StaticResource TeksRedup}" Margin="0,4,0,0"/>
+
+            <TextBlock Text="Catatan Musyawarah" Style="{StaticResource SubJudul}"/>
+            <TextBlock Style="{StaticResource TeksRedup}" Margin="0,0,0,6"
+                       Text="Tulis kesepakatan, usulan yang ditunda, atau hal yang perlu ditindaklanjuti. Catatan ikut tercetak di laporan ringkasan."/>
+            <TextBox x:Name="TxtCatatan" Text="{Binding Catatan, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                     MinHeight="120" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" MaxHeight="400"
+                     IsReadOnly="{Binding TidakBisaUbah, Source={x:Static core:AppState.Instance}}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

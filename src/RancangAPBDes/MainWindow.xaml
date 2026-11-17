@@ -1,0 +1,188 @@
+<Window x:Class="RancangAPBDes.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:RancangAPBDes.Core"
+        Title="Rancang APBDes – Simulasi Perencanaan &amp; Anggaran Desa"
+        FontFamily="{StaticResource FontUtama}" FontSize="15"
+        Foreground="{StaticResource TeksUtama}" Background="{StaticResource LatarApp}"
+        MinWidth="900" MinHeight="580" Width="1280" Height="800"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        DataContext="{x:Static core:AppState.Instance}">
+    <Grid x:Name="Akar">
+        <Grid.LayoutTransform>
+            <ScaleTransform x:Name="Skala" ScaleX="1" ScaleY="1"/>
+        </Grid.LayoutTransform>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============ Kepala ============ -->
+        <Border Grid.Row="0" Background="{StaticResource Primer}" Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Foreground="#DCE6F5" TextWrapping="Wrap" VerticalAlignment="Center">
+                    <Run Text="Rancang APBDes" FontSize="19" FontWeight="SemiBold" Foreground="White"/>
+                    <Run Text="  ·  simulasi perencanaan &amp; anggaran untuk musyawarah"/>
+                    <Run Text="{Binding Desa.NamaDesa, Mode=OneWay}" FontWeight="SemiBold" Foreground="White"/>
+                </TextBlock>
+                <TextBlock Grid.Column="1" Text="{Binding NamaFileSingkat}" ToolTip="{Binding NamaFile}" Foreground="#DCE6F5" FontSize="13"
+                           VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Right" MaxWidth="320" Margin="16,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <!-- ============ Bilah alat ============ -->
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource Garis}" BorderThickness="0,0,0,1" Padding="12,8,12,2">
+            <WrapPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,12,6">
+                    <TextBlock Text="Tahun" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding DaftarTahun}" SelectedItem="{Binding TahunAktif}" MinWidth="90"
+                              ToolTip="Pilih tahun anggaran"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
+                    <TextBlock Text="Skenario" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding SkenarioTahunIni}" SelectedItem="{Binding SkenarioAktif}"
+                              DisplayMemberPath="Tampil" MinWidth="240" MaxWidth="460"
+                              ToolTip="Pilih skenario anggaran yang ingin dilihat/diubah"/>
+                </StackPanel>
+                <Button x:Name="BtnSkenario" Content="Skenario ▾" Click="Skenario_Click"
+                        ToolTip="Buat, salin, ganti nama, kunci (final), atau hapus skenario"/>
+                <Rectangle Width="1" Fill="{StaticResource Garis}" Margin="4,2,10,8"/>
+                <Button Content="↶ Batalkan" Click="Batalkan_Click" IsEnabled="{Binding BisaBatalkan}"
+                        ToolTip="Batalkan perubahan terakhir (Ctrl+Z)"/>
+                <Button Content="↷ Ulangi" Click="Ulangi_Click" IsEnabled="{Binding BisaUlangi}"
+                        ToolTip="Ulangi perubahan yang dibatalkan (Ctrl+Y)"/>
+                <Rectangle Width="1" Fill="{StaticResource Garis}" Margin="4,2,10,8"/>
+                <Button Content="Ekspor Excel" Click="Ekspor_Click" ToolTip="Simpan semua tabel skenario ini ke file Excel"/>
+                <Button Content="Pratinjau &amp; Cetak" Click="Cetak_Click" Style="{StaticResource TombolUtama}"
+                        ToolTip="Lihat dan cetak laporan (bisa disimpan sebagai PDF)"/>
+                <Rectangle Width="1" Fill="{StaticResource Garis}" Margin="4,2,10,8"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
+                    <Button Content="A−" Click="Perkecil_Click" Margin="0" MinWidth="40" ToolTip="Perkecil tampilan (Ctrl −)"/>
+                    <TextBlock x:Name="TxtZoom" Text="100%" MinWidth="58" TextAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Content="A+" Click="Perbesar_Click" Margin="0" MinWidth="40" ToolTip="Perbesar tampilan (Ctrl +)"/>
+                </StackPanel>
+                <Button Content="Layar Penuh" Click="LayarPenuh_Click" ToolTip="Mode presentasi untuk proyektor (F11)"/>
+                <Button x:Name="BtnFile" Content="File ▾" Click="File_Click" ToolTip="Buka, buat baru, salin, dan cadangan file data"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ============ Isi ============ -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="200" MaxWidth="260"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Background="White" BorderBrush="{StaticResource Garis}" BorderThickness="0,0,1,0">
+                <ListBox x:Name="Nav" BorderThickness="0" Padding="0,8" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="Nav_SelectionChanged">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="16,11"/>
+                            <Setter Property="Margin" Value="6,1"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#EEF3FA"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#D6E4F5"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBoxItem Tag="ringkasan"><TextBlock TextWrapping="Wrap" Text="Ringkasan APBDes"/></ListBoxItem>
+                    <ListBoxItem Tag="belanja"><TextBlock TextWrapping="Wrap" Text="Belanja (Kegiatan &amp; RAB)"/></ListBoxItem>
+                    <ListBoxItem Tag="pendapatan"><TextBlock TextWrapping="Wrap" Text="Pendapatan &amp; Pembiayaan"/></ListBoxItem>
+                    <ListBoxItem Tag="banding"><TextBlock TextWrapping="Wrap" Text="Bandingkan Skenario"/></ListBoxItem>
+                    <ListBoxItem Tag="desa"><TextBlock TextWrapping="Wrap" Text="Data Desa"/></ListBoxItem>
+                    <ListBoxItem Tag="referensi"><TextBlock TextWrapping="Wrap" Text="Referensi &amp; Aturan"/></ListBoxItem>
+                    <ListBoxItem Tag="bantuan"><TextBlock TextWrapping="Wrap" Text="Petunjuk Singkat"/></ListBoxItem>
+                </ListBox>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Background="{StaticResource KuningMuda}" BorderBrush="#E8C66A" BorderThickness="0,0,0,1" Padding="16,8"
+                        Visibility="{Binding SkenarioFinal, Converter={StaticResource BoolKeVis}}">
+                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Kuning}">
+                        <Run Text="🔒 Skenario ini berstatus FINAL (terkunci) sehingga tidak bisa diubah." FontWeight="SemiBold"/>
+                        <Run Text="Untuk mencoba variasi, pilih Skenario ▸ Salin skenario ini. Untuk mengubahnya, pilih Skenario ▸ Buka kunci."/>
+                    </TextBlock>
+                </Border>
+                <ContentControl x:Name="Isi" Grid.Row="1" Margin="16,12,16,8" Focusable="False"/>
+            </Grid>
+        </Grid>
+
+        <!-- ============ Bilah status ============ -->
+        <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource Garis}" BorderThickness="0,1,0,0" Padding="12,6,12,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <WrapPanel VerticalAlignment="Center">
+                    <TextBlock Text="Sisa dana:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                    <ItemsControl ItemsSource="{Binding Hasil.PerSumberDana}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Chip" CornerRadius="12" Padding="10,3" Margin="0,0,6,6"
+                                        Background="{StaticResource HijauMuda}" ToolTip="{Binding Nama}">
+                                    <TextBlock x:Name="ChipTeks" Foreground="{StaticResource Hijau}">
+                                        <Run Text="{Binding Kode, Mode=OneWay}" FontWeight="SemiBold"/>
+                                        <Run Text="{Binding Sisa, Mode=OneWay, StringFormat={}{0:#,##0}}"/>
+                                    </TextBlock>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Kurang}" Value="True">
+                                        <Setter TargetName="Chip" Property="Background" Value="{StaticResource MerahMuda}"/>
+                                        <Setter TargetName="ChipTeks" Property="Foreground" Value="{StaticResource Merah}"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="TxtSisaAnggaran" VerticalAlignment="Center" Margin="6,0,0,6" TextWrapping="Wrap"/>
+                </WrapPanel>
+                <TextBlock Grid.Column="1" Text="{Binding StatusSimpan}" VerticalAlignment="Center" Margin="16,0,0,6"
+                           TextWrapping="Wrap" MaxWidth="380" TextAlignment="Right">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource WarnaRedup}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GagalSimpan}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Merah}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

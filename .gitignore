@@ -1,0 +1,12 @@
+bin/
+obj/
+dist/
+*.user
+.vs/
+*.apbdes
+*.tmp
+
+# Data desa asli - jangan diunggah
+*.xlsx
+*.xls
+

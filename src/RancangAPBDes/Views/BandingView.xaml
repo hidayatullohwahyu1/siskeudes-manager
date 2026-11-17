@@ -1,0 +1,67 @@
+<UserControl x:Class="RancangAPBDes.Views.BandingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:RancangAPBDes.Core">
+    <ScrollViewer x:Name="Luar" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+    <Grid MinHeight="480" Height="{Binding ViewportHeight, ElementName=Luar}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Bandingkan Dua Skenario" Style="{StaticResource Judul}"/>
+        <TextBlock Grid.Row="1" Style="{StaticResource TeksRedup}" Margin="0,0,0,10"
+                   Text="Berguna saat musyawarah untuk melihat apa saja yang berubah antara usulan awal dan hasil kesepakatan. Selisih = B − A."/>
+        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
+                <TextBlock Text="Skenario A" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <ComboBox x:Name="CmbA" MinWidth="260" MaxWidth="420" DisplayMemberPath="TampilLengkap"
+                          ItemsSource="{Binding SemuaSkenario, Source={x:Static core:AppState.Instance}}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
+                <TextBlock Text="Skenario B" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <ComboBox x:Name="CmbB" MinWidth="260" MaxWidth="420" DisplayMemberPath="TampilLengkap"
+                          ItemsSource="{Binding SemuaSkenario, Source={x:Static core:AppState.Instance}}"/>
+            </StackPanel>
+            <Button Content="Bandingkan" Click="Bandingkan_Click" Style="{StaticResource TombolUtama}"/>
+            <CheckBox x:Name="ChkBeda" Content="Hanya tampilkan yang berbeda" IsChecked="True" Margin="8,0,0,6"
+                      Checked="Bandingkan_Click" Unchecked="Bandingkan_Click"/>
+        </WrapPanel>
+        <DataGrid x:Name="Tabel" Grid.Row="3" IsReadOnly="True">
+            <DataGrid.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <Border Background="#E8EDF4" Padding="10,6" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="16" TextWrapping="Wrap"/>
+                            </Border>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </DataGrid.GroupStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="120" MinWidth="90" ElementStyle="{StaticResource SelTeks}"/>
+                <DataGridTextColumn Header="Uraian" Binding="{Binding Uraian}" Width="3*" MinWidth="200" ElementStyle="{StaticResource SelTeks}"/>
+                <DataGridTextColumn Header="A (Rp)" Binding="{Binding A, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                <DataGridTextColumn Header="B (Rp)" Binding="{Binding B, StringFormat={}{0:#,##0}}" Width="*" MinWidth="120" ElementStyle="{StaticResource SelAngka}"/>
+                <DataGridTextColumn Header="Selisih (Rp)" Binding="{Binding Selisih, StringFormat={}{0:+#,##0;-#,##0;0}}" Width="*" MinWidth="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SelAngkaTebal}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Arah}" Value="-1">
+                                    <Setter Property="Foreground" Value="{StaticResource Merah}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Arah}" Value="1">
+                                    <Setter Property="Foreground" Value="{StaticResource Hijau}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Keterangan" Binding="{Binding Keterangan}" Width="*" MinWidth="110" ElementStyle="{StaticResource SelTeks}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+    </ScrollViewer>
+</UserControl>
